@@ -1,0 +1,4 @@
+# Exclude files in files/convPlots
+/files.convPlots/*
+*.pyc
+/profilehooks.py
