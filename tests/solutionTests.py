@@ -36,7 +36,7 @@ class SolutionToolsTests(unittest.TestCase):
 		dataName = "Morris no disp"
 		data = dfio.readDimensionalParametersFromJSON(fileName, dataName)
 		I, amt = st.solveIFromJSON(t, data)
-		
+
 		self.assertTrue(np.amax(I) < 8e-7)
 		self.assertTrue(np.amax(I) > 7e-7)
 
@@ -160,7 +160,7 @@ class SolutionToolsTests(unittest.TestCase):
 		ind = range(lowerBdd, upperBdd)
 		
 		#Check that model accounts for >= 95% of variation about the mean.
-		self.assertTrue(np.sum((IObs[ind] - I[ind])**2)/len(IObs) <=\
+		self.assertTrue(np.sum((IObs[ind] - I[ind])**2) <=\
 		5e-2 * np.sum((IObs[ind] - np.mean(IObs[ind])**2)))
 
 	def testExtractHarmonicCorrectlyIDsHarmonics(self):
@@ -218,7 +218,6 @@ class SolutionToolsTests(unittest.TestCase):
 		Ru, Cdl, Cdl1, Cdl2, Cdl3, EStart, ERev, temp, nu, area, 
 		coverage, False)
 
-
 		secHarm = st.extractHarmonic(2, freq * 7, I)
 		secHarmMax = np.amax(secHarm)
 		self.assertTrue(secHarmMax > 0.9e-4)
@@ -249,12 +248,8 @@ class SolutionToolsTests(unittest.TestCase):
 		Ru, Cdl, Cdl1, Cdl2, Cdl3, EStart, ERev, temp, nu, area, 
 		coverage, False)
 
-		import matplotlib.pyplot as plt
 
 		secHarm = st.extractHarmonic(5, freq * 7, I)
-		import matplotlib.pyplot as plt
-		plt.plot(I)
-		plt.show()
 		secHarmMax = np.amax(secHarm)
 		self.assertTrue(secHarmMax > 1e-5)
 		self.assertTrue(secHarmMax < 2.e-5)

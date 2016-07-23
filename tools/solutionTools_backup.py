@@ -10,29 +10,17 @@ from scipy.weave import inline, blitz
 solverFunctions = {}
 binFunctions ={}
 
-ftol = float(3e-8); 
-maxIter = int(50);
-
 #TODO: Put C code in a separate file to tidy up.
 
 fDef = """
 // Python discrep
+#define MAX_ITER 10000
+#define NEWTONTOL 1e-5
+#define TOL  1.48e-8
+#define FTOL  1e-8
 
-struct Params {
-	double overPotNext;
-	double rhof;
-	double INext;
-	double* ICurr;
-	double gammaf;
-	double gamma1f;
-	double gamma2f;
-	double gamma3f;
-	double rhoDivhf;
-	double hf;
-	double* thetaCurr;
-	double dEpsNext;
-	double kappaf;
-};
+#define MIN(a,b) (a<b)?(a):(b)
+#define MAX(a,b) (a>b)?(a):(b)
 
 double discrep(double overPotNext, double rhof, double INext, double ICurr, double gammaf, double gamma1f, double gamma2f, double gamma3f, double rhoDivhf, double hf, int i, double* _theta, double dEpsNext, double kappaf) {
 	double eta = overPotNext - rhof * INext;
@@ -42,17 +30,6 @@ double discrep(double overPotNext, double rhof, double INext, double ICurr, doub
 	double kOx = kappaf * expon;
 	_theta[i+1] = (_theta[i] + hf * kOx) / (1 + hf*(kOx+kRed));
 	return cap * (dEpsNext - rhoDivhf * (INext - ICurr)) + (1.0-_theta[i+1])*kOx - _theta[i+1] * kRed - INext;
-}
-
-double discrepParam(double INext, void *params) {
-	struct Params* p = (struct Params*)params;
-	double eta = p->overPotNext - p->rhof * INext;
-	double cap = p->gammaf * (1 + eta * (p->gamma1f + eta * (p->gamma2f + eta * p->gamma3f)));
-	double expon = exp(0.5 * eta);
-	double kRed = p->kappaf / expon;
-	double kOx = p->kappaf * expon;
-	*(p->thetaCurr + 1) = (*(p->thetaCurr) + p->hf * kOx) / (1 + p->hf*(kOx+kRed));
-	return cap * (p->dEpsNext - p->rhoDivhf * (INext - *(p->ICurr))) + (1.0 - *(p->thetaCurr + 1) ) * kOx - *(p->thetaCurr + 1)  * kRed - INext;
 }
 
 double discrepStep(double overPotNext, double rhof, double INext, double ICurr, double gammaf, double gamma1f, double gamma2f, double gamma3f, double rhoDivhf, double hf, int i, double* _theta, double dEpsNext, double kappaf, double* fVal) {
@@ -68,97 +45,91 @@ double discrepStep(double overPotNext, double rhof, double INext, double ICurr, 
 
 	double dCap = gammaf * (gamma1f + eta * (2 * gamma2f + eta * 3 * gamma3f));
 	double fPrime = -cap * rhoDivhf + dCap * (dEpsNext - rhoDivhf * (INext - ICurr)) - rhof * 0.5 * (dThetaNext * (kOx + kRed) - (_theta[i+1] - 1) * kOx + _theta[i+1] * kRed) - 1;
-	return (*fVal) / fPrime;
-}
-
-double discrepStepParam(double INext, double* fVal, void * args) {
-	struct Params* p = (struct Params*)args;
-	double eta = p->overPotNext - p->rhof * INext;
-	double cap = p->gammaf * (1 + eta * (p->gamma1f + eta * (p->gamma2f + eta * p->gamma3f)));
-	double expon = exp(0.5 * eta);
-	double kRed = p->kappaf / expon;
-	double kOx = p->kappaf * expon;
-	double denom = (1 + p->hf*(kOx+kRed));
-	double dThetaNext = p->hf * (-kOx - *(p->thetaCurr + 1) * (kRed - kOx)) / denom;
- 
-	*(p->thetaCurr + 1) = (*(p->thetaCurr) + p->hf * kOx) / (1 + p->hf*(kOx+kRed));
-	*fVal = cap * (p->dEpsNext - p->rhoDivhf * (INext - *(p->ICurr))) + (1.0 - *(p->thetaCurr + 1) ) * kOx - *(p->thetaCurr + 1)  * kRed - INext;
-	double dCap = p->gammaf * (p->gamma1f + eta * (2 * p->gamma2f + eta * 3 * p->gamma3f));
-	double fPrime = -cap * p->rhoDivhf + dCap * (p->dEpsNext - p->rhoDivhf * (INext - *(p->ICurr))) - p->rhof * 0.5 * (dThetaNext * (kOx + kRed) - (*(p->thetaCurr + 1) - 1) * kOx + *(p->thetaCurr + 1) * kRed) - 1;
-	return (*fVal) / fPrime;
+	return -(*fVal) / fPrime;
 }
 
 """
 
 expr = """ // Python expr
-int i; 
+int i;
 double t = tau0;
-return_val = -1; //All good
+double op, dOP;
+return_val = 0;
+int numIter;
 
-if(fabs(rhof) > 1e-10) {
-	// Set up the parameter struct.
-	struct Params *parameters = (struct Params*)malloc(sizeof(struct Params));
-	assert(parameters != NULL);
+for(i = 0; i < n-1; i++) {
+	t += hf;
+	if(t < revTau) {
+		op = t + dEps * sin(omega * (t - tau0)) - eps_0;
+		dOP = 1 + omega * dEps * cos(omega * (t-tau0));
+	} else {
+		op = 2 * revTau - t + dEps * sin(omega * (t - tau0)) - eps_0;
+		dOP = -1 + omega * dEps * cos(omega * (t - tau0));
+	}
+	// This choice of initial conditions gives good performance for a wide range of k_0, E_0 values.
+	double I1, I0 = I[i];
+	if(I0 < 0) {
+		I1 = I0 * (1+1e-4) + 1;
+	} else {
+		I1 = I0 * (1+1e-4) - 1;
+	}
+	double f1, f0 = discrep(op, rhof, I0, I[i], gammaf, gamma1f, gamma2f, gamma3f, rhoDivhf, hf,i, theta, dOP, kappaf);	
 
-	parameters->rhof = rhof;
-	parameters->gammaf = gammaf;
-	parameters->gamma1f = gamma1f;
-	parameters->gamma2f = gamma2f;
-	parameters->gamma3f = gamma3f;
-	parameters->rhoDivhf = rhof/hf;
-	parameters->hf = hf;
-	parameters->kappaf = kappaf;
-
-
-	//Set up the I, theta pointers.
-	parameters->thetaCurr = theta;
-	parameters->ICurr = I;
-
-
-	for(i = 0; i < n-1; i++) {
-		t += hf;
-		// Based on setting di/dtau = 0 and taking the Taylor series expansion of dTheta/dtau to third order.
-		double IRadius = kappaf * hf; //Rough heuristic.
-		if(t < revTau) {
-			parameters->overPotNext = t + dEps * sin(omega * (t - tau0)) - eps_0;
-			parameters->dEpsNext = 1 + omega * dEps * cos(omega * (t-tau0));
-		} else {
-			parameters->overPotNext = 2 * revTau - t + dEps * sin(omega * (t - tau0)) - eps_0;
-			parameters->dEpsNext = -1 + omega * dEps * cos(omega * (t - tau0));
-		}
- 	
-		I[i+1] = I[i];
-		double IGuess = I[i] - IRadius;
 	
-		if(solverSecant(maxIter, (I+i+1), IGuess, &discrepParam, ftol, parameters) == -1) { //Failed to converge. . .
-			return_val = i;
-			break;
-		}
-		parameters->ICurr++;
-		parameters->thetaCurr++;
-	}
-	free(parameters);
-} else {
-	double op, dOP;
-	for(i = 0; i < n-1; i++) {
-			t += hf;
-			if(t < revTau) {
-				op = t + dEps * sin(omega * (t - tau0)) - eps_0;
-				dOP = 1 + omega * dEps * cos(omega * (t-tau0));
-			} else {
-				op = 2 * revTau - t + dEps * sin(omega * (t - tau0)) - eps_0;
-				dOP = -1 + omega * dEps * cos(omega * (t - tau0));
+	f1 = discrep(op, rhof, I1, I[i], gammaf, gamma1f, gamma2f, gamma3f, rhoDivhf, hf,i, theta, dOP, kappaf);
+
+	int bracketed = 0;
+	double INext, fNext;
+	for(numIter = 0; numIter < MAX_ITER; numIter++) {
+		if((f1 > 0 && f0 > 0) || (f1< 0 && f0<0)) { //We haven't bounded a root.
+			// Modified secant algorithm designed to overshoot such that f1 ~ -0.01 * f0 (with equality for linear functions).
+			INext = ((f1 + 0.01*f0) * I0 - 1.01* I1 * f0) / (f1 - f0); 
+			I0 = I1;
+			f0 = f1;
+			I1 = INext;
+			f1 = discrep(op, rhof, I1, I[i], gammaf, gamma1f, gamma2f, gamma3f, rhoDivhf, hf, i, theta, dOP, kappaf);
+		} else { //We've bracketed a root!
+			bracketed = 1;
+			if(f1 < 0) { // From here on, we want f(I0) < 0 < f(I1)
+				double tmp = I1;
+				I1 = I0;
+				I0 = tmp;
+				tmp = f1;
+				f1 = f0;
+				f0 = tmp;
 			}
-			double expon = exp(0.5 * op);
-			double kOx = kappaf * expon;
-			double kRed = kappaf / expon;
-			theta[i+1] = (theta[i] + hf * kOx) / (1 + hf*(kRed + kOx));
-			double dTheta = (1-theta[i+1]) * kOx - theta[i+1] * kRed;
-			I[i+1] = gammaf * dOP + dTheta;
+			// Continue looping, but use bisection. 
+			int useNext = 1;
+			INext = (I1 + I0) * 0.5;
+			for(;numIter < MAX_ITER;numIter++) { 
+				fNext = discrep(op, rhof, INext, I[i], gammaf, gamma1f, gamma2f, gamma3f, rhoDivhf, hf,i, theta, dOP, kappaf);
+				if(fNext < 0) {
+					I0 = INext;
+				} else {
+					I1 = INext;
+				}
+				if(fabs(I1-I0) < TOL) { 
+					I[i+1] = (I1+I0) * 0.5;
+					break; // Root-finding done.
+				}
+				INext = (I1 + I0) * 0.5;
+			}
+			break; //One way or another, we've finished.
+		}
 	}
-
+	if(numIter == MAX_ITER) {
+		I[0] = I0;
+		I[1] = I1;
+		I[2] = f0;
+		I[3] = f1;
+		if(bracketed) {
+			return_val = 1;
+		} else {
+			return_val = -1;
+		}
+		break; //Big loop
+	}
 }
-
 """
 
 
@@ -186,15 +157,14 @@ def solveI(tau, eps_0, dEps, omega, kappa, rho, gamma, gamma1, gamma2, gamma3,
 	kappaf = float(kappa)
 	revTau = float(revTau)
 	eps_0 = float(eps_0)
-	
-	retFlag = inline(expr, ['n', 'rhof', 'theta', 'I', 'gammaf', 'gamma1f', 
-	'gamma2f', 'gamma3f', 'hf', 'omega', 'dEps', 'kappaf', 
-	'revTau', 'eps_0', 'tau0', 'ftol', 'maxIter'], support_code=fDef, 
-	headers=['"solvers.c"', "<stdlib.h>"], include_dirs=["/users/gavart/Private/python/electrochemistry/tools"], 
-	define_macros=[("NEWTON_DEBUG", None)])
 
-	if retFlag != -1:
-		msg = "Failed to converge at %d.  Values were I[%d] = %10f, I[%d]=%.10f." %(retFlag+1, retFlag, I[retFlag], retFlag+1, I[retFlag+1])
+	retFlag = inline(expr, ['n', 'rhof', 'theta', 'I', 'gammaf', 'gamma1f', 'gamma2f', 'gamma3f', 'rhoDivhf', 'hf', 'omega', 'dEps', 'kappaf', 'revTau', 'eps_0', 'tau0'], support_code=fDef)
+
+	if retFlag == -1:
+		msg = "Failed to converge; did not bound a root.  Values were (%10f, %.10f) and (%10f, %.10f)." %(I[0], I[2], I[1], I[3])
+		raise RuntimeError(msg)
+	elif retFlag > 0:
+		msg = "Failed to converge; did bound a root. Values were (%10f, %.10f) and (%10f, %.10f)" %(I[0], I[2], I[1], I[3])
 		raise RuntimeError(msg)
 	return I,theta
 

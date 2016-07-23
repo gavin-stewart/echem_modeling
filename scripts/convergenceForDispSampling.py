@@ -19,9 +19,9 @@ baseData = dfio.readParametersFromJSON(fileName, dataName)
 baseData["type"] = "disp-dimensional-bins"
 # Remove E_0, k_0 from the data and store them as means for the distributions.
 E_0Mean = baseData.pop("E_0", None)
-E_0SD = 1e-1
+E_0SD = 1e-2
 k_0Mean = baseData.pop("k_0", None)
-k_0SD = 2
+k_0SD = 3
 freq = baseData["freq"]
 
 endTime = (baseData["ERev"] - baseData["EStart"]) / baseData["nu"]

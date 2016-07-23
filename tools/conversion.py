@@ -21,7 +21,7 @@ def dimPot(temp, eps):
 	return eps * potScale(temp)
 
 def potScale(temp):
-	return R_GAS *temp / FARADAY
+	return R_GAS * temp / FARADAY
 
 # Time functions
 
