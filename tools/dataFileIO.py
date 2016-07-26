@@ -53,12 +53,18 @@ def writeTimeCurrentDataBinary(fileName, t, I, overwrite=False):
 		msg = "File exists and overwriting was not requested."
 		raise ValueError(msg)
 
-	data = { 't' : t, 'I' : I }
+	data = { 'tStart' : t[0], 'tEnd' : t[-1], 'nt' : len(t), 'I' : I }
 	np.savez_compressed(fileName, **data)
 
 def readTimeCurrentDataBinary(fileName, overwrite=False):
 	data = np.load(fileName)
-	t = data['t']
+	if 't' in data: #Old-style
+		t = data['t']
+	else: #New-style
+		tStart = data['tStart']
+		tEnd = data['tEnd']
+		nt = data['nt']
+		t = np.linspace(tStart, tEnd, nt)
 	I = data['I']
 	return t,I
 

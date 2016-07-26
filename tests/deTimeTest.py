@@ -38,7 +38,7 @@ def solveODE(numRep = 100, plot = False):
 		_,__ = st.solveIFromJSON(t, baseData)
 		if(i==0 and plot):
 			plt.plot(t, _)
-
+baseData["k_0"] = 1e11
 baseData["E_0"] = -0.1
 solveODE(5)
 baseData["E_0"] = -0.2
@@ -46,7 +46,7 @@ solveODE(5)
 baseData["E_0"] = -0.3
 solveODE(5)
 baseData["E_0"] = -0.4
-solveODE(5, True)
+solveODE(5)
 baseData["E_0"] = -0.5
 solveODE(5)
 baseData["E_0"] = -0.6

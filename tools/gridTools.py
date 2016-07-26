@@ -11,7 +11,7 @@ def unifSpacedParam(numSamples, startPoint, endPoint, loc, scale, exp, distr=sci
 	keys.insert(0, -np.inf)
 	keys.append(np.inf)
 	if exp:
-		pt = loc * np.power(2, keys[1:-1])
+		pt = loc * np.exp(keys[1:-1]) * exp(-np.square(scale) / 2)
 	else:
 		pt = keys[1:-1]
 	weights = []
@@ -35,7 +35,7 @@ def unifSpacedProb(numSamples, loc, scale, exp, distr=scipy.stats.distributions.
 	weights = itertools.repeat(1.0/float(numSamples), numSamples)
 	for k in binCenters:
 		if exp:
-			pts.append(loc * np.power(2, distr.ppf(k, 0, scale)))
+			pts.append(loc * np.expdistr.ppf(k, 0, scale))
 		else:
 			pts.append(distr.ppf(k, loc, scale))
 	return pts, weights
@@ -44,7 +44,7 @@ def leggaussParam(numSamples, startPoint, endPoint, loc, scale, exp, distr=scipy
 	GLPts, GLweights = np.polynomial.legendre.leggauss(numSamples)
 	rescaledPts = 0.5 * (GLPts + 1) * (endPoint-startPoint) + startPoint
 	if exp:
-		pts = loc * np.power(2, rescaledPts)
+		pts = loc * np.exp(rescaledPts)* exp(-np.square(scale) / 2)
 	else:
 		pts = rescaledPts
 	weights = [] 
@@ -62,7 +62,7 @@ def leggaussProb(numSamples, loc, scale, exp, distr=scipy.stats.distributions.no
 	weights = []
 	for pt,weight in zip(rescaled, GLWeights):
 		if exp:
-			paramPt = loc * np.power(2, distr.ppf(pt, 0, scale))
+			paramPt = loc * np.exp(distr.ppf(pt, 0, scale))* exp(-np.square(scale) / 2)
 			weights.append(np.exp(-np.square(-distr.ppf(pt, 0, scale)) / (2*scale**2)) / (np.sqrt(2*np.pi) * scale) * weight)
 		else:
 			paramPt = distr.ppf(pt, loc, scale)
@@ -77,7 +77,7 @@ def hermgaussParam(numSamples, mean, SD, exp=False):
 
 	GHPts, weights = np.polynomial.hermite.hermgauss(numSamples)
 	if exp:
-		pts = mean * np.power(2, np.sqrt(2) * SD * GHPts)
+		pts = mean * np.exp(np.sqrt(2) * SD * GHPts)* np.exp(-np.square(SD) / 2)
 	else:
 		pts = np.sqrt(2) * SD * GHPts + mean
 	weights = weights / np.sqrt(np.pi)

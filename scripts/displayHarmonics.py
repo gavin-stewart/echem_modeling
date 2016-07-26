@@ -1,4 +1,11 @@
+#!/bin/python
 # The code for plotting harmonics of I.
+
+#Add top level package to python path
+import os, sys, os.path
+topLevel = os.path.realpath(os.path.join(os.path.realpath(__file__), os.pardir))
+
+
 
 import solutionTools
 import numpy as np

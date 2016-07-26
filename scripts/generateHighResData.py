@@ -1,5 +1,11 @@
+#!/bin/python
 # A script for generating high resolution datasets to be compared against lower resolution datasets to guess
 # at the minimum numbe rof points needed to have a good resolution.
+
+#Add top level package to python path
+import os, sys, os.path
+topLevel = os.path.realpath(os.path.join(os.path.realpath(__file__), os.pardir))
+
 
 import dataFileIO as dfio
 import numpy as np

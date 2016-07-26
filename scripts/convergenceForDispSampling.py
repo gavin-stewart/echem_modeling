@@ -1,4 +1,8 @@
+#!/bin/python
 # Creates a plot of the convergence of various methods of calculating current with kinetic and thermodynamic dispersion.
+
+#Add top level package to python path
+import getTopLevel
 
 import tools.dataFileIO as dfio
 import tools.solutionTools as st
@@ -10,16 +14,16 @@ import matplotlib.pyplot as plt
 
 PTS_PER_WAVE = 200
 
-numEvaluations = [1, 2, 3, 4, 5, 10, 15, 20, 30, 40, 50]
-benchmarkNumEvals = 60
+numEvaluations = [1, 5, 10, 15, 20, 30, 40, 50, 60, 70]
+benchmarkNumEvals = 80
 
-fileName = "./files/simulationParameters.json"
+fileName = getTopLevel.makeTopLevelPath("files/simulationParameters.json")
 dataName = "Martin's experiment"
 baseData = dfio.readParametersFromJSON(fileName, dataName)
 baseData["type"] = "disp-dimensional-bins"
 # Remove E_0, k_0 from the data and store them as means for the distributions.
 E_0Mean = baseData.pop("E_0", None)
-E_0SD = 1e-2
+E_0SD = 1e-1
 k_0Mean = baseData.pop("k_0", None)
 k_0SD = 3
 freq = baseData["freq"]
@@ -63,7 +67,7 @@ def l2Norm(a):
 	return np.sum(np.square(a))
  
 def genFileName(name):
-	return "./files/dispersion/" + name + ".npz"
+	return getTopLevel.makeTopLevelPath("files/dispersion/" + name + ".npz")
 
 #names = ["EqSpParam", "EqSpProb", "LegGaussParam", "LegGaussProb", "HermGauss"]
 names = ["HermGauss"]
@@ -72,6 +76,7 @@ setupFunctions = {"EqSpParam" : setupForEqSpParam, "EqSpProb" : setupForEqSpProb
 # Load benchmark data, or generate it
 
 simFileName = genFileName("benchmark")
+print simFileName
 if os.path.exists(simFileName):
 	t, IHR = dfio.readTimeCurrentDataBinary(simFileName)
 else:
@@ -103,8 +108,9 @@ for name in names:
 		harm = st.extractHarmonic(10, freq*endTime, I)
 		harmErr.append(l2Norm(harmHR[trim:-trim] - harm[trim:-trim]) / harmNorm)
 		print "Data for {0} samples loaded".format(numSamples)
+		print "\tError was {0}.".format(harmErr[-1])
 
 	plt.title("Convergence in the 10th harmonic for {0}".format(name))
 	plt.loglog(numEvaluations, harmErr)
-	plt.savefig("./files/convPlots/harm10Conv{0}.pdf".format(name))
+	plt.savefig(getTopLevel.makeTopLevelpath("files/convPlots/harm10Conv{0}.pdf".format(name)))
 	plt.close()

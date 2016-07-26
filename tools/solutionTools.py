@@ -5,120 +5,55 @@ from scipy.optimize import brentq
 import inspect
 import scipy.stats.distributions
 import numpy.polynomial.legendre
+import scipy.interpolate
 from scipy.weave import inline, blitz
 
 solverFunctions = {}
 binFunctions ={}
 
-ftol = float(3e-8); 
-maxIter = int(50);
+tol = float(1e-8) 
+ftol = float(3e-6)
+maxIter = int(1000)
 
 #TODO: Put C code in a separate file to tidy up.
 
-fDef = """
-// Python discrep
-
-struct Params {
-	double overPotNext;
-	double rhof;
-	double INext;
-	double* ICurr;
-	double gammaf;
-	double gamma1f;
-	double gamma2f;
-	double gamma3f;
-	double rhoDivhf;
-	double hf;
-	double* thetaCurr;
-	double dEpsNext;
-	double kappaf;
-};
-
-double discrep(double overPotNext, double rhof, double INext, double ICurr, double gammaf, double gamma1f, double gamma2f, double gamma3f, double rhoDivhf, double hf, int i, double* _theta, double dEpsNext, double kappaf) {
-	double eta = overPotNext - rhof * INext;
-	double cap = gammaf * (1 + eta * (gamma1f + eta * (gamma2f + eta * gamma3f)));
-	double expon = exp(0.5 * eta);
-	double kRed = kappaf / expon;
-	double kOx = kappaf * expon;
-	_theta[i+1] = (_theta[i] + hf * kOx) / (1 + hf*(kOx+kRed));
-	return cap * (dEpsNext - rhoDivhf * (INext - ICurr)) + (1.0-_theta[i+1])*kOx - _theta[i+1] * kRed - INext;
-}
-
-double discrepParam(double INext, void *params) {
-	struct Params* p = (struct Params*)params;
-	double eta = p->overPotNext - p->rhof * INext;
-	double cap = p->gammaf * (1 + eta * (p->gamma1f + eta * (p->gamma2f + eta * p->gamma3f)));
-	double expon = exp(0.5 * eta);
-	double kRed = p->kappaf / expon;
-	double kOx = p->kappaf * expon;
-	*(p->thetaCurr + 1) = (*(p->thetaCurr) + p->hf * kOx) / (1 + p->hf*(kOx+kRed));
-	return cap * (p->dEpsNext - p->rhoDivhf * (INext - *(p->ICurr))) + (1.0 - *(p->thetaCurr + 1) ) * kOx - *(p->thetaCurr + 1)  * kRed - INext;
-}
-
-double discrepStep(double overPotNext, double rhof, double INext, double ICurr, double gammaf, double gamma1f, double gamma2f, double gamma3f, double rhoDivhf, double hf, int i, double* _theta, double dEpsNext, double kappaf, double* fVal) {
-	double eta = overPotNext - rhof * INext;
-	double cap = gammaf * (1 + eta * (gamma1f + eta * (gamma2f + eta * gamma3f)));
-	double expon = exp(0.5 * eta);
-	double kRed = kappaf / expon;
-	double kOx = kappaf * expon;
-	double denom = (1 + hf*(kOx+kRed));
-	_theta[i+1] = (_theta[i] + hf * kOx) / denom; 
-	double dThetaNext = hf * (-kOx - _theta[i+1] * (kRed - kOx)) / denom; 
-	*fVal = (cap * (dEpsNext - rhoDivhf * (INext - ICurr)) + (1.0-_theta[i+1])*kOx - _theta[i+1] * kRed - INext);
-
-	double dCap = gammaf * (gamma1f + eta * (2 * gamma2f + eta * 3 * gamma3f));
-	double fPrime = -cap * rhoDivhf + dCap * (dEpsNext - rhoDivhf * (INext - ICurr)) - rhof * 0.5 * (dThetaNext * (kOx + kRed) - (_theta[i+1] - 1) * kOx + _theta[i+1] * kRed) - 1;
-	return (*fVal) / fPrime;
-}
-
-double discrepStepParam(double INext, double* fVal, void * args) {
-	struct Params* p = (struct Params*)args;
-	double eta = p->overPotNext - p->rhof * INext;
-	double cap = p->gammaf * (1 + eta * (p->gamma1f + eta * (p->gamma2f + eta * p->gamma3f)));
-	double expon = exp(0.5 * eta);
-	double kRed = p->kappaf / expon;
-	double kOx = p->kappaf * expon;
-	double denom = (1 + p->hf*(kOx+kRed));
-	double dThetaNext = p->hf * (-kOx - *(p->thetaCurr + 1) * (kRed - kOx)) / denom;
- 
-	*(p->thetaCurr + 1) = (*(p->thetaCurr) + p->hf * kOx) / (1 + p->hf*(kOx+kRed));
-	*fVal = cap * (p->dEpsNext - p->rhoDivhf * (INext - *(p->ICurr))) + (1.0 - *(p->thetaCurr + 1) ) * kOx - *(p->thetaCurr + 1)  * kRed - INext;
-	double dCap = p->gammaf * (p->gamma1f + eta * (2 * p->gamma2f + eta * 3 * p->gamma3f));
-	double fPrime = -cap * p->rhoDivhf + dCap * (p->dEpsNext - p->rhoDivhf * (INext - *(p->ICurr))) - p->rhof * 0.5 * (dThetaNext * (kOx + kRed) - (*(p->thetaCurr + 1) - 1) * kOx + *(p->thetaCurr + 1) * kRed) - 1;
-	return (*fVal) / fPrime;
-}
-
-"""
-
-expr = """ // Python expr
+expr = """// Python expr
 int i; 
 double t = tau0;
 return_val = -1; //All good
+Params *parameters = (struct Params*)malloc(sizeof(struct Params));
+assert(parameters != NULL);
 
-if(fabs(rhof) > 1e-10) {
+parameters->rhof = rhof;
+parameters->gammaf = gammaf;
+parameters->gamma1f = gamma1f;
+parameters->gamma2f = gamma2f;
+parameters->gamma3f = gamma3f;
+parameters->rhoDivhf = rhof/hf;
+parameters->hf = hf;
+parameters->kappaf = kappaf;
+
+
+//Set up the I, theta pointers.
+parameters->thetaCurr = theta;
+parameters->ICurr = I;
+
+if(fabs(parameters->rhof) > 1e-10) {
 	// Set up the parameter struct.
-	struct Params *parameters = (struct Params*)malloc(sizeof(struct Params));
-	assert(parameters != NULL);
-
-	parameters->rhof = rhof;
-	parameters->gammaf = gammaf;
-	parameters->gamma1f = gamma1f;
-	parameters->gamma2f = gamma2f;
-	parameters->gamma3f = gamma3f;
-	parameters->rhoDivhf = rhof/hf;
-	parameters->hf = hf;
-	parameters->kappaf = kappaf;
-
-
-	//Set up the I, theta pointers.
-	parameters->thetaCurr = theta;
-	parameters->ICurr = I;
-
-
+	
 	for(i = 0; i < n-1; i++) {
 		t += hf;
-		// Based on setting di/dtau = 0 and taking the Taylor series expansion of dTheta/dtau to third order.
-		double IRadius = kappaf * hf; //Rough heuristic.
+		double IRadius;
+		if(kappaf < 1e5) {
+			IRadius = kappaf * hf; //Rough heuristic.
+		} else {
+			IRadius = 1e5 * hf; //Prevent blowups.
+		}
+
+		if(IRadius < 1e-3 * (fabs(I[i]) + 1)) {
+			IRadius = 1e-3 * (fabs(I[i]) + 1);
+		}
+
 		if(t < revTau) {
 			parameters->overPotNext = t + dEps * sin(omega * (t - tau0)) - eps_0;
 			parameters->dEpsNext = 1 + omega * dEps * cos(omega * (t-tau0));
@@ -127,11 +62,12 @@ if(fabs(rhof) > 1e-10) {
 			parameters->dEpsNext = -1 + omega * dEps * cos(omega * (t - tau0));
 		}
  	
-		I[i+1] = I[i];
-		double IGuess = I[i] - IRadius;
+		I[i+1] = I[i] + 0.5 * IRadius;
+		double IGuess = I[i] - 0.5 * IRadius;
 	
-		if(solverSecant(maxIter, (I+i+1), IGuess, &discrepParam, ftol, parameters) == -1) { //Failed to converge. . .
+		if(solverSecantToFP(maxIter, (I+i+1), IGuess, &discrepParam, tol, ftol, parameters) == -1) { //Failed to converge. . .
 			return_val = i;
+			fErr[0] = discrepParam(I[i+1], parameters);
 			break;
 		}
 		parameters->ICurr++;
@@ -157,13 +93,11 @@ if(fabs(rhof) > 1e-10) {
 			I[i+1] = gammaf * dOP + dTheta;
 	}
 
-}
-
-"""
+}"""
 
 
 def solveI(tau, eps_0, dEps, omega, kappa, rho, gamma, gamma1, gamma2, gamma3,
-	revTau, **kwargs):
+	revTau, kappaThresh=1e4, **kwargs):
 	"""Solves for current using backwards Euler and returns the result as 
 	a numpy array."""
 	# Fixing alpha = 0.5 makes the analytic form, numerical evaluation nicer.
@@ -183,18 +117,28 @@ def solveI(tau, eps_0, dEps, omega, kappa, rho, gamma, gamma1, gamma2, gamma3,
 	hf = float(h)
 	omega = float(omega)
 	dEps = float(dEps)
-	kappaf = float(kappa)
+	if(kappa > kappaThresh):
+		kappaf = kappaThresh
+	else:
+		kappaf = float(kappa)
 	revTau = float(revTau)
 	eps_0 = float(eps_0)
+
+	fErr = np.empty(1);
 	
-	retFlag = inline(expr, ['n', 'rhof', 'theta', 'I', 'gammaf', 'gamma1f', 
-	'gamma2f', 'gamma3f', 'hf', 'omega', 'dEps', 'kappaf', 
-	'revTau', 'eps_0', 'tau0', 'ftol', 'maxIter'], support_code=fDef, 
-	headers=['"solvers.c"', "<stdlib.h>"], include_dirs=["/users/gavart/Private/python/electrochemistry/tools"], 
-	define_macros=[("NEWTON_DEBUG", None)])
+	cVars = ['n', 'rhof', 'theta', 'I', 'gammaf', 'gamma1f', 'gamma2f',
+	'gamma3f', 'hf', 'omega', 'dEps', 'kappaf', 'revTau', 'eps_0', 'tau0',
+	 'ftol', 'tol', 'maxIter', 'fErr']
+	headers = ['"solvers.c"', '"discrepancyFunctions.c"', "<stdlib.h>"]
+	inc_dirs = ["/users/gavart/Private/python/electrochemistry/tools"]
+
+	retFlag = inline(expr, cVars, headers=headers, include_dirs=inc_dirs)
 
 	if retFlag != -1:
-		msg = "Failed to converge at %d.  Values were I[%d] = %10f, I[%d]=%.10f." %(retFlag+1, retFlag, I[retFlag], retFlag+1, I[retFlag+1])
+		msg = """Failed to converge at %d.  Values were I[%d] = %10f, 
+		I[%d]=%.10f.  Discrepency was %.10f.
+		""" %(retFlag+1, retFlag, I[retFlag], retFlag+1, I[retFlag+1], 
+		fErr[0])
 		raise RuntimeError(msg)
 	return I,theta
 
@@ -233,6 +177,7 @@ EStart, ERev, temp, nu, area, coverage, reverse, **kwargs):
 	omega = conv.freqToNondimOmega(temp, nu, freq)
 
 	kappa = conv.nondimRate(temp, nu, k_0)
+	kappaThresh = conv.nondimRate(temp, nu, 1e6)
 	
 	tau = conv.timeToNondimVoltage(temp, nu, EStart, ERev, t, reverse)	
 
@@ -246,7 +191,7 @@ EStart, ERev, temp, nu, area, coverage, reverse, **kwargs):
 	gamma2 = Cdl2 
 	gamma3 = Cdl3 
 
-	i, theta = solveI(tau, eps_0, dEps, omega, kappa, rho, gamma, gamma1, gamma2, gamma3, epsRev)
+	i, theta = solveI(tau, eps_0, dEps, omega, kappa, rho, gamma, gamma1, gamma2, gamma3, epsRev, kappaThresh = kappaThresh)
 
 	I = conv.dimCurrent(temp, nu, area, coverage, i)
 	amtCovered = theta * area * coverage
@@ -266,6 +211,7 @@ EStart, ERev, temp, nu, area, coverage, bins, reverse, **kwargs):
 			E_0Val = vals[0]
 			k_0Val = vals[1]
 			weight = vals[2]
+
 			I, amt = solveIDimensional(t, E_0Val, dE, freq, k_0Val,
 			Ru, Cdl, Cdl1, Cdl2, Cdl3, EStart, ERev, temp, 
 			nu, area, coverage, reverse)
@@ -376,6 +322,72 @@ EStart, ERev, temp, nu, area, coverage, E_0Mean, E_0SD, k_0Mean, k_0SD, reverse,
 	IAgg, amtAgg = reduce(lambda a,b: (a[0]+b[0], a[1]+b[1]), map(solveIInner, E_0Vals, k_0Vals))
 	return IAgg/numRuns, amtAgg/numRuns
 solverFunctions["disp-dimensional-MC"] = solveIDimensionalMC
+
+def extractPeaks(x, y):
+	"""Returns a tuple containing a list of x values and yvalues where the maximums of the data x,y occur."""
+	if len(x) != len(y):
+		raise ValueError('Expected x and y to have equal lengths')
+
+	n = len(x)
+
+	#Sort the x values.
+	zipped = zip(x,y)
+	zipped.sort(key=lambda z: z[0]) #Sort by x value.
+	x,y = zip(*zipped) 	
+
+	xVals = []
+	yVals = []
+	if y[0] > y[1]:
+		xVals.append(x[0])
+		yVals.append(y[0])
+	
+	for yPrev,xCurr,yCurr,yNext in zip(y[:-2], x[1:-1], y[1:-1], y[2:]):
+		if yCurr >= yPrev and yCurr >= yNext:
+			xVals.append(xCurr)
+			yVals.append(yCurr)
+
+	if y[-1] > y[-2]:
+		xVals.append(x[-1])
+		yVals.append(y[-1])
+
+	return xVals, yVals
+
+def interpolatedTotalEnvelope(x, y):
+	"""Returns an estimate of the envelope of the signal (x,y) by interpolating the maxima of (x,abs(y))"""
+	xPeak, yPeak = extractPeaks(x, abs(y))
+	if x[0] not in xPeak:
+		xPeak.append(x[0])
+		yPeak.append(abs(y[0]))
+	if x[-1] not in xPeak:
+		xPeak.append(x[-1])
+		yPeak.append(abs(y[-1]))
+	xPeak, yPeak = zip(*sorted(zip(xPeak, yPeak), key=lambda n: n[0]))
+	result = scipy.interpolate.interp1d(np.array(xPeak), np.array(yPeak), kind='linear')(x)
+	return result
+
+def interpolatedUpperEnvelope(x,y):
+	"""Returns an estimate of the envelope of the signal (x,hy) by interpolating the maxima of (x, y)"""
+	xPeak, yPeak = extractPeaks(x, y)
+	if x[0] not in xPeak:
+		xPeak.append(x[0])
+		yPeak.append(abs(y[0]))
+	if x[-1] not in xPeak:
+		xPeak.append(x[-1])
+		yPeak.append(abs(y[-1]))
+	xPeak, yPeak = zip(*sorted(zip(xPeak, yPeak), key=lambda n: n[0]))
+	return scipy.interpolate.interp1d(np.array(xPeak), np.array(yPeak), kind='linear')(x)
+
+def interpolatedLowerEnvelope(x,y):
+	"""Returns an estimate of the envelope of the signal (x,hy) by interpolating the maxima of (x, -y)"""
+	xPeak, yPeak = extractPeaks(x, -y)
+	if x[0] not in xPeak:
+		xPeak.append(x[0])
+		yPeak.append(abs(y[0]))
+	if x[-1] not in xPeak:
+		xPeak.append(x[-1])
+		yPeak.append(abs(y[-1]))
+	xPeak, yPeak = zip(*sorted(zip(xPeak, yPeak), key=lambda n: n[0]))
+	return -1 * scipy.interpolate.interp1d(np.array(xPeak), np.array(yPeak), kind='linear')(x)
 
 def getSolverNames():
 	return solverFunctions.keys()

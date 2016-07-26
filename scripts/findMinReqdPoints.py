@@ -1,5 +1,8 @@
 # Investigates the minimum number of points needed to accurately represent the current data.
 
+#Get the top level directory of the project, and add it to the path.
+import getTopLevel
+
 import numpy as np
 from numpy.fft import rfft, irfft
 import dataFileIO as dfio
@@ -30,7 +33,7 @@ nVals = [1e6, 5e5, 1e5, 5e4, 1e4]
 IVals = []
 harmonics = range(1, 11)
 
-fileName = "/users/gavart/Private/python/electrochemistry/files/highresSimData.npz"
+fileName = getTopLevel.makeFilePath("highresSimData.npz")
 
 def downSample(data, k):
 	"""Returns a list containing every k-th point in the supplied data"""

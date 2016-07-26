@@ -324,3 +324,21 @@ class SolutionToolsTests(unittest.TestCase):
 		expWidth = 0.176
 		width = st.widthAtHalfMaximum(I, t, data["nu"])
 		self.assertTrue(abs(expWidth - width) < 5e-3)
+
+	def testPeakExtractionSimple(self):
+		"""Test peak extraction on y=x**2."""
+		x = np.linspace(-1,1,1e5+1)
+		y = 1-np.square(x)
+		peakX, peakY = st.extractPeaks(x,y)
+		self.assertEqual(len(peakX), len(peakY))
+		self.assertEqual(len(peakX), 1)
+		self.assertTrue(np.isclose(peakX[0], 0))
+		self.assertTrue(np.isclose(peakY[0], 1))
+	
+	def testEnvelopeInterpolation(self):
+		t = np.linspace(0, np.pi, 1e5)
+		y = np.sin(t) * np.sin(500*t)
+		yEnvTrue = np.sin(t)
+		yEnvExtracted = st.interpolatedEnvelope(t, y)
+		self.assertEqual(len(yEnvExtracted), len(yEnvTrue))
+		self.assertTrue(np.sum(np.square(yEnvTrue - yEnvExtracted))/len(yEnvTrue) < 1e-4)
