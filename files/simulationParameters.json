@@ -6,6 +6,13 @@
 "Cdl3" : 1.10053945995e-6, "coverage" : 0.012608239e-9, "nu" : 27.94e-3, 
 "temp" : 298.15, "area" : 0.03, "reverse" : true},
 
+
+{"name" : "disp Coulomb", "type" : "disp-dimensional-bins", 
+"EStart" : -0.85, "ERev" : -0.1, "dE" : 0.0, "freq" : 8.95925020, "Ru" : 0.0, 
+"Cdl" : 0.0, "Cdl1" : 0.0, "Cdl2" : 0.0, "Cdl3" : 0.0, 
+"coverage" : 1.2608239e-11, "nu" : 50e-3, "temp" : 298.15, "area" : 0.03,
+ "reverse" : false, "bins" : [[-0.41, 4e3, 1]]},
+
 {"name" : "Morris no disp", "type" : "dimensional", "EStart" : -0.2,
 "ERev" : 0.5, "E_0" : 0, "dE" : 0, "freq" : 0, "k_0" : 0.1, "Ru" : 100.0,
 "Cdl" : 0, "Cdl1" : 0, "Cdl2" : 0, "Cdl3" : 0, "coverage" : 1e-11, 
@@ -18,7 +25,7 @@
 
 {"Ru": 0.0, "k_0Mean": 0.1, "reverse": false, "ERev": 0.5, 
 "name": "morris-E0-disp-MC", "temp": 293, "EStart": -0.2, "Cdl": 0.0, 
-"E_0Mean": 0, "dE": 0.0, "area": 1.0, "E_0SD": 0.05, "numRuns": 40, 
+"E_0Mean": 0, "dE": 0.0, "area": 1.0, "E_0SD": 0.05, "numRuns": 1000, 
 "Cdl1": 0.0, "Cdl3": 0.0, "Cdl2": 0.0, "coverage": 1e-11, "freq": 0.0, 
 "type": "disp-dimensional-MC", "nu": 0.1, "k_0SD": 0}
 ]

@@ -80,7 +80,7 @@ class IOTests(unittest.TestCase):
 			dfio.writeTimeCurrentDataBinary(fileName, t, I)
 
 	def testWriteBinaryDoesOverwriteWhenOverwriteIsSet(self):
-		t = np.random.rand(10)
+		t = np.linspace(0,1,10)
 		I = np.random.rand(10)
 		fileName = "/users/gavart/Private/python/electrochemistry/files/IOTest4.npz"
 		dfio.writeTimeCurrentDataBinary(fileName, t, I, True)

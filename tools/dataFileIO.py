@@ -42,8 +42,9 @@ def writeTimeCurrentData(fileName, t, I, overwrite=False):
 		for i in range(len(t)):
 			f.write("{0}\t{1}\n".format(t[i], I[i]))
 
-def writeTimeCurrentDataBinary(fileName, t, I, overwrite=False):
-	"""Writes the given time and current data to the specified file in binary."""
+
+def writeTimeCurrentDataBinaryCompressed(fileName, t, I, overwrite=False):
+	"""Writes the given time and current data to the specified file in binary.  This will result in a compressed .npz file."""
 
 	if len(t) != len(I):
 		msg = "Expected time and current lists to have the same length.  Time length was {0} and current length was {1}.".format(len(t), len(I))
@@ -55,6 +56,23 @@ def writeTimeCurrentDataBinary(fileName, t, I, overwrite=False):
 
 	data = { 'tStart' : t[0], 'tEnd' : t[-1], 'nt' : len(t), 'I' : I }
 	np.savez_compressed(fileName, **data)
+
+def writeTimeCurrentDataBinaryUncompressed(fileName, t, I, overwrite=False):
+	"""Writes the given time and current data to the specified file in binary.  This will result in a .npy file."""
+
+	if len(t) != len(I):
+		msg = "Expected time and current lists to have the same length.  Time length was {0} and current length was {1}.".format(len(t), len(I))
+		raise ValueError(msg)
+
+	if os.path.exists(fileName) and not overwrite:
+		msg = "File exists and overwriting was not requested."
+		raise ValueError(msg)
+
+	data = { 'tStart' : t[0], 'tEnd' : t[-1], 'nt' : len(t), 'I' : I }
+	np.savez(fileName, **data)
+
+# Backwards compatibility
+writeTimeCurrentDataBinary = writeTimeCurrentDataBinaryCompressed
 
 def readTimeCurrentDataBinary(fileName, overwrite=False):
 	data = np.load(fileName)

@@ -44,10 +44,10 @@ if(fabs(parameters->rhof) > 1e-10) {
 	for(i = 0; i < n-1; i++) {
 		t += hf;
 		double IRadius;
-		if(kappaf < 1e5) {
+		if(kappaf * hf < 1) {
 			IRadius = kappaf * hf; //Rough heuristic.
 		} else {
-			IRadius = 1e5 * hf; //Prevent blowups.
+			IRadius = 1; //Prevent blowups.
 		}
 
 		if(IRadius < 1e-3 * (fabs(I[i]) + 1)) {
@@ -131,8 +131,8 @@ def solveI(tau, eps_0, dEps, omega, kappa, rho, gamma, gamma1, gamma2, gamma3,
 	 'ftol', 'tol', 'maxIter', 'fErr']
 	headers = ['"solvers.c"', '"discrepancyFunctions.c"', "<stdlib.h>"]
 	inc_dirs = ["/users/gavart/Private/python/electrochemistry/tools"]
-
-	retFlag = inline(expr, cVars, headers=headers, include_dirs=inc_dirs)
+	extra_compile_args = []
+	retFlag = inline(expr, cVars, headers=headers, include_dirs=inc_dirs, extra_compile_args=extra_compile_args)
 
 	if retFlag != -1:
 		msg = """Failed to converge at %d.  Values were I[%d] = %10f, 

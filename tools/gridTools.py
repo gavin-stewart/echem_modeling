@@ -75,6 +75,10 @@ def hermgaussParam(numSamples, mean, SD, exp=False):
 
 	Note that this functions assumes that E_0 and log(k_0) are normally distributed."""
 
+	if SD == 0:
+		# No variance, will put all the points on mean.
+		return [mean], [1]
+
 	GHPts, weights = np.polynomial.hermite.hermgauss(numSamples)
 	if exp:
 		pts = mean * np.exp(np.sqrt(2) * SD * GHPts)* np.exp(-np.square(SD) / 2)
