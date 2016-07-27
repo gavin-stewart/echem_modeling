@@ -58,7 +58,7 @@ def writeTimeCurrentDataBinaryCompressed(fileName, t, I, overwrite=False):
 	np.savez_compressed(fileName, **data)
 
 def writeTimeCurrentDataBinaryUncompressed(fileName, t, I, overwrite=False):
-	"""Writes the given time and current data to the specified file in binary.  This will result in a .npy file."""
+	"""Writes the given time and current data to the specified file in binary.  This will result in a .npz file."""
 
 	if len(t) != len(I):
 		msg = "Expected time and current lists to have the same length.  Time length was {0} and current length was {1}.".format(len(t), len(I))

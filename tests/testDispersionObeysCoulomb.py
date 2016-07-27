@@ -10,7 +10,7 @@ def k0QuadFunFactory(kSD):
 	return lambda n: gt.hermgaussParam(n, 4e3, kSD, True)
 
 def E0QuadFunFactory(ESD):
-	return lambda n: gt.hermgaussParam(n, 0, ESD, False)
+	return lambda n: gt.hermgaussParam(n, -0.41, ESD, False)
 
 class DispersionCoulombTests(unittest.TestCase):
 	""" 
@@ -25,6 +25,7 @@ class DispersionCoulombTests(unittest.TestCase):
 		self.baseData = dfio.readParametersFromJSON('./files/simulationParameters.json', "disp Coulomb")
 		tEnd = (self.baseData["ERev"] - self.baseData["EStart"]) / self.baseData["nu"]
 		self.numPts = np.ceil(tEnd * 8.959 * 200)
+	
 		self.t = np.linspace(0, tEnd, int(self.numPts))
 
 	def addResistance(self):
