@@ -246,20 +246,31 @@ int oppositeSign(double x, double y) {
 int solverSecantToFP(int maxIter, double *x, double xStart, double (*fFun)(double, void*), double tol, double ftol, void *args) {
 	int i;
 	double fVal = fFun(*x, args);
+	double fStart = fVal;
 	double fPrev = fFun(xStart, args);
 	double xPrev = xStart;
+	int stepShortened;
 	for(i=0; !oppositeSign(fVal, fPrev) && i < maxIter; i++) {
-		double xNext = *x - fVal * (*x - xPrev) / (fVal - fPrev);
+		stepShortened = 0;
+		double xStep = fVal * (*x - xPrev) / (fVal - fPrev);
+		double xNext = *x - xStep;
+		double fNext = fFun(xNext, args);
+		while(fabs(fNext) >= fabs(fVal) + 2*ftol && i < maxIter) { //No improvement.  Try shortening the step.
+			i++;
+			xStep *= 0.5;
+			xNext = *x - xStep;
+			fNext = fFun(xNext, args);
+			stepShortened = 1;
+		}
 		fPrev = fVal;
 		xPrev = *x;
 		*x = xNext;
 		fVal = fFun(*x, args);
-		if(fabs(*x - xPrev) < tol) {
+		if(!stepShortened && fabs(*x - xPrev) < tol * (1 + fabs(*x) + fabs(xPrev))) {
 			return i+1;
-		} else if(fabs(fVal) < ftol) {
+		} else if(fabs(fVal) < ftol * (fabs(*x) + 1)) {
 			return i+1;
 		}
-
 	}
 	//If we're here, than either fVal and fPrev have opposite signs or we've reach the max number of iterations.
 	double fLower, fUpper;
@@ -275,12 +286,12 @@ int solverSecantToFP(int maxIter, double *x, double xStart, double (*fFun)(doubl
 		fUpper = fVal;
 		xUpper = *x;
 	} 
-	//TODO: Add Illinois improvement.
+	
 	int lastEnd = 0;
 	*x = (fUpper * xLower - fLower * xUpper) / (fUpper - fLower);
 	for(; i < maxIter; i++) {
 		double fNext = fFun(*x, args);
-		if(fabs(fNext) < ftol || fabs(xUpper - xLower) < tol) {
+		if(fabs(fNext) < ftol * (fabs(*x) + 1) || fabs(xUpper - xLower) < tol * (1 + fabs(xLower) + fabs(xUpper))) {
 			return i+1;
 		} else if(fNext < 0) {
 			fLower = fNext;

@@ -12,8 +12,8 @@ solverFunctions = {}
 binFunctions ={}
 
 tol = float(1e-8) 
-ftol = float(3e-6)
-maxIter = int(1000)
+ftol = float(2e-6)
+maxIter = int(10000)
 
 #TODO: Put C code in a separate file to tidy up.
 
@@ -42,7 +42,7 @@ if(fabs(parameters->rhof) > 1e-10) {
 	// Set up the parameter struct.
 	
 	for(i = 0; i < n-1; i++) {
-		t += hf;
+		t += hf; 
 		double IRadius;
 		if(kappaf * hf < 1) {
 			IRadius = kappaf * hf; //Rough heuristic.
@@ -139,7 +139,7 @@ def solveI(tau, eps_0, dEps, omega, kappa, rho, gamma, gamma1, gamma2, gamma3,
 		I[%d]=%.10f.  Discrepency was %.10f.
 		""" %(retFlag+1, retFlag, I[retFlag], retFlag+1, I[retFlag+1], 
 		fErr[0])
-		raise RuntimeError(msg)
+		raise ConvergenceError(msg)
 	return I,theta
 
 
@@ -391,3 +391,7 @@ def interpolatedLowerEnvelope(x,y):
 
 def getSolverNames():
 	return solverFunctions.keys()
+
+class ConvergenceError(RuntimeError):
+	def __init__(self, *args):
+		super(ConvergenceError, self).__init__(*args)

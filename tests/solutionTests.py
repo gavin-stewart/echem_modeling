@@ -35,7 +35,8 @@ class SolutionToolsTests(unittest.TestCase):
 
 		t,IObs =  dfio.readTimeCurrentData(fileName)
 		
-		params = dfio.readDimensionalParametersFromJSON(jsonFileName, dataName)
+		params = dfio.readDimensionalParametersFromJSON(jsonFileName, 
+                          dataName)
 	
 		I, amt = st.solveIFromJSON(t, params)
 		
@@ -44,7 +45,8 @@ class SolutionToolsTests(unittest.TestCase):
 		upperBdd = int(np.floor(0.8*n))
 		ind = range(lowerBdd, upperBdd)
 		
-		#Check that model accounts for >= 95% of variation about the mean.
+		#Check that model accounts for >= 95% of variation about the 
+                #mean.
 		self.assertTrue(np.sum((IObs[ind] - I[ind])**2) <=\
 		5e-2 * np.sum((IObs[ind] - np.mean(IObs[ind])**2)))
 
@@ -79,7 +81,8 @@ class SolutionToolsTests(unittest.TestCase):
 		self.assertTrue(np.isclose(np.amax(np.imag(y2)), 0))
 
 	def testSolutionHarmonics1(self):
-		"""Second harmonic roughly matches the results of Morris et al 2015"""
+		"""Second harmonic roughly matches the results of Morris et al
+                   2015"""
 
 		n = 7e4
 		t=np.linspace(0,7,n)
@@ -174,21 +177,28 @@ class SolutionToolsTests(unittest.TestCase):
 		self.assertEqual(list(pts), list(np.linspace(-7,7,15)))
 		for pt, weight in zip(pts, weights):
 			if np.isclose(pt, -7):
-				self.assertTrue(np.isclose(weight, norm.cdf(-6.5)))
+				self.assertTrue(np.isclose(weight, 
+                                                           norm.cdf(-6.5)))
 			elif np.isclose(pt, 7):
-				self.assertTrue(np.isclose(weight, norm.sf(6.5)))
+				self.assertTrue(np.isclose(weight, 
+                                                           norm.sf(6.5)))
 			else:
-				self.assertTrue(np.isclose(weight, norm.cdf(pt+0.5) -norm.cdf(pt-0.5)))
+				self.assertTrue(np.isclose(weight, 
+                                          norm.cdf(pt+0.5) -norm.cdf(pt-0.5)))
 
 	def testUnifSpaceParamsWithShiftAndStretch(self):
 		pts, weights = gt.unifSpacedParam(15, -7.0, 7.0, 1, 2, False)
 		for pt, weight in zip(pts, weights):
 			if np.isclose(pt,-7.0):
-				self.assertTrue(np.isclose(weight, norm.cdf(-6.5, loc=1, scale=2)))
+				self.assertTrue(np.isclose(weight, 
+                                            norm.cdf(-6.5, loc=1, scale=2)))
 			elif np.isclose(pt,7.0):
-				self.assertTrue(np.isclose(weight, norm.sf(6.5, loc=1, scale=2)))
+				self.assertTrue(np.isclose(weight, 
+                                            norm.sf(6.5, loc=1, scale=2)))
 			else:
-				self.assertTrue(np.isclose(weight, norm.cdf(pt+0.5, loc=1, scale=2) -norm.cdf(pt-0.5, loc=1, scale=2)))
+				self.assertTrue(np.isclose(weight, 
+                                            norm.cdf(pt+0.5, loc=1, scale=2) -
+                                            norm.cdf(pt-0.5, loc=1, scale=2)))
 
 
 	def testUnifSpaceProbNorm(self):
@@ -214,4 +224,5 @@ class SolutionToolsTests(unittest.TestCase):
 		yEnvTrue = np.sin(t)
 		yEnvExtracted = st.interpolatedTotalEnvelope(t, y)
 		self.assertEqual(len(yEnvExtracted), len(yEnvTrue))
-		self.assertTrue(np.sum(np.square(yEnvTrue - yEnvExtracted))/len(yEnvTrue) < 1e-4)
+		self.assertTrue(np.sum(np.square(yEnvTrue - yEnvExtracted)) /
+                                                  len(yEnvTrue) < 1e-4)
