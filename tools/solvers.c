@@ -255,7 +255,7 @@ int solverSecantToFP(int maxIter, double *x, double xStart, double (*fFun)(doubl
 		double xStep = fVal * (*x - xPrev) / (fVal - fPrev);
 		double xNext = *x - xStep;
 		double fNext = fFun(xNext, args);
-		while(fabs(fNext) >= fabs(fVal) + 2*ftol && i < maxIter) { //No improvement.  Try shortening the step.
+		while(fabs(fNext) >= 0.5 * (fabs(fVal) + fabs(fPrev)) + 2*ftol && i < maxIter) { //No improvement.  Try shortening the step.
 			i++;
 			xStep *= 0.5;
 			xNext = *x - xStep;

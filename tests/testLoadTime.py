@@ -1,12 +1,12 @@
-"""
-Evaluates the time/memory trade-off associated with constructing/loading 50 current traces with random parameters.
+"""Evaluates the time/memory trade-off associated with constructing/loading 50
+current traces with random parameters.
 """
 
 NUM_TRACE = 50
 import time
 import os.path, os, shutil
 import tools.solutionTools as st
-import tools.dataFileIO as dfio
+import tools.io as io
 
 loadPath = './tests/files/temp/'
 
@@ -53,12 +53,12 @@ def generateFromScratch():
 @timeit
 def readFromFileCompressed():
 	for i in range(NUM_TRACE):
-		t,I = dfio.readTimeCurrentDataBinary(os.path.join(loadPath, "compressed/data"+str(i)+".npz"))
+		t,I = io.readTimeCurrentDataBinary(os.path.join(loadPath, "compressed/data"+str(i)+".npz"))
 
 @timeit
 def readFromFileUncompressed():
 	for i in range(NUM_TRACE):
-		t,I = dfio.readTimeCurrentDataBinary(os.path.join(loadPath, "uncompressed/data"+str(i)+".npz"))
+		t,I = io.readTimeCurrentDataBinary(os.path.join(loadPath, "uncompressed/data"+str(i)+".npz"))
 
 
 
@@ -70,8 +70,8 @@ for i in range(NUM_TRACE):
 	data.append(dataCurr)
 	I, _ = st.solveIFromJSON(t, dataCurr)
 	#Save compressed and uncompressed copies.
-	dfio.writeTimeCurrentDataBinaryCompressed(os.path.join(loadPath, "compressed/data"+str(i)+".npz"), t, I, overwrite=True)		
-	dfio.writeTimeCurrentDataBinaryUncompressed(os.path.join(loadPath, "uncompressed/data"+str(i)+".npz"), t, I, overwrite=True)
+	io.writeTimeCurrentDataBinaryCompressed(os.path.join(loadPath, "compressed/data"+str(i)+".npz"), t, I, overwrite=True)		
+	io.writeTimeCurrentDataBinaryUncompressed(os.path.join(loadPath, "uncompressed/data"+str(i)+".npz"), t, I, overwrite=True)
 
 generateFromScratch()
 

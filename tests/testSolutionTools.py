@@ -1,9 +1,9 @@
-# Tests for the conversion, solutionTools, and dataFileIO
+# Tests for the conversion and solutionTools
 
 import unittest
 import tools.solutionTools as st
 import tools.gridTools as gt
-import tools.dataFileIO as dfio
+import tools.io as io
 import tools.conversion as conv
 import numpy as np
 from scipy.stats import norm
@@ -16,13 +16,13 @@ class ConversionTests(unittest.TestCase):
 	def testTimeConversion(self):
 		"""Verify that the time conversion function works"""
 		EStart = -1
-		ERev = 1
+		EEnd = 1
 		t = np.linspace(0, 1, 100)
-		nu = 2./100.
+		nu = 2.
 		temp = 25.+273.15
-		tau = conv.timeToNondimVoltage(temp, nu, EStart, ERev, t)
-		self.assertEqual(tau[-1], conv.nondimPot(temp, EStart) +\
-		 2. * conv.nondimPot(temp, ERev - EStart))
+		tau = conv.timeToNondimVoltage(temp, nu, EStart, EEnd, t)
+		self.assertAlmostEqual(tau[0], conv.nondimPot(temp, EStart))
+		self.assertAlmostEqual(tau[-1], conv.nondimPot(temp, EEnd))
 
 class SolutionToolsTests(unittest.TestCase):
 
@@ -33,9 +33,9 @@ class SolutionToolsTests(unittest.TestCase):
 		jsonFileName = "./files/simulationParameters.json"
 		dataName = "Martin's experiment"
 
-		t,IObs =  dfio.readTimeCurrentData(fileName)
+		t,IObs =  io.readTimeCurrentData(fileName)
 		
-		params = dfio.readDimensionalParametersFromJSON(jsonFileName, dataName)
+		params = io.readDimensionalParametersFromJSON(jsonFileName, dataName)
 	
 		I, amt = st.solveIFromJSON(t, params)
 		

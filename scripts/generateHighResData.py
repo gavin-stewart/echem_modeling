@@ -7,7 +7,7 @@ import os, sys, os.path
 topLevel = os.path.realpath(os.path.join(os.path.realpath(__file__), os.pardir))
 
 
-import dataFileIO as dfio
+import tools/io as io
 import numpy as np
 import solutionTools
 
@@ -43,5 +43,5 @@ Cdl3, EStart, ERev, temp, nu, area, coverage, True)[0]
 
 print "Done"
 print "Write data to file. . ."
-dfio.writeTimeCurrentDataBinary(fileName, t, I, True)
+io.writeTimeCurrentDataBinary(fileName, t, I, True)
 print "Done"

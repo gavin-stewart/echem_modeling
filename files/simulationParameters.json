@@ -27,5 +27,11 @@
 "name": "morris-E0-disp-MC", "temp": 293, "EStart": -0.2, "Cdl": 0.0, 
 "E_0Mean": 0, "dE": 0.0, "area": 1.0, "E_0SD": 0.05, "numRuns": 1000, 
 "Cdl1": 0.0, "Cdl3": 0.0, "Cdl2": 0.0, "coverage": 1e-11, "freq": 0.0, 
-"type": "disp-dimensional-MC", "nu": 0.1, "k_0SD": 0}
+"type": "disp-dimensional-MC", "nu": 0.1, "k_0SD": 0},
+
+{"name" : "Dispersion points plot", "type" : "disp-dimensional-bins", 
+"EStart" : -0.5, "ERev" : 0.5, "E_0" : 0, "dE" : 150e-3, "freq" : 9.0, 
+"k_0" : 4e3, "Ru" : 100.0, "Cdl" : 4e-4, "Cdl1" : 8.5e-4, "Cdl2" : 2.5e-4,
+"Cdl3" : 1e-6, "coverage" : 1.3e-11, "area" : 0.03, "nu" : 25e-3, 
+"temp" : 298.15, "reverse" : true}
 ]

@@ -5,7 +5,7 @@ import getTopLevel
 
 import numpy as np
 from numpy.fft import rfft, irfft
-import dataFileIO as dfio
+import tools.io as io
 import solutionTools as st
 import matplotlib.pyplot as plt
 
@@ -47,7 +47,7 @@ def l2ScaledNorm(x):
 
 # Read in the high-resolution data
 print "Loading high-resolution data. . ."
-tHR, IHR = dfio.readTimeCurrentDataBinary(fileName)
+tHR, IHR = io.readTimeCurrentDataBinary(fileName)
 print "Done loading data"
 
 del tHR #To save space

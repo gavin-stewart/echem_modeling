@@ -1,7 +1,7 @@
 
 import tools.solutionTools as st
 import tools.gridTools as gt
-import tools.dataFileIO as dfio
+import tools.io as io
 import numpy as np
 from scipy.stats.distributions import norm
 import unittest
@@ -17,12 +17,12 @@ class DispersionCoulombTests(unittest.TestCase):
 	Tests that functions relating to dispersion perform as expected.	
 	"""
 
-	ESDVals = [0, 1e-2, 1e-1]
-	kSDVals = [0, 1, 3]
+	ESDVals = [1e-3, 1e-2, 1e-1]
+	kSDVals = [1, 2, 3]
 	numSampPts = 15
 	
 	def setUp(self):
-		self.baseData = dfio.readParametersFromJSON('./files/simulationParameters.json', "disp Coulomb")
+		self.baseData = io.readParametersFromJSON('./files/simulationParameters.json', "disp Coulomb")
 		tEnd = (self.baseData["ERev"] - self.baseData["EStart"]) / self.baseData["nu"]
 		self.numPts = np.ceil(tEnd * 8.959 * 200)
 	

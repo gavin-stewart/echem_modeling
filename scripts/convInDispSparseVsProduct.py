@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # Creates a plot of the convergence of sparse grid vs product grid methods of calculating current with kinetic and thermodynamic dispersion.
 
-import ..tools.dataFileIO as dfio
+import ..tools.io as io
 import ..tools.solutionTools as st
 import ..tools.gridTools as gt
 import numpy as np
@@ -16,7 +16,7 @@ benchmarkNumEvals = 70
 
 fileName = "./files/simulationParameters.json"
 dataName = "Martin's experiment"
-baseData = dfio.readParametersFromJSON(fileName, dataName)
+baseData = io.readParametersFromJSON(fileName, dataName)
 baseData["type"] = "disp-dimensional-bins"
 # Remove E_0, k_0 from the data and store them as means for the distributions.
 E_0Mean = baseData.pop("E_0", None)
@@ -58,13 +58,13 @@ setupFunctions = {"HermGaussSparse" : setupForHermGaussSparse, "HermGauss" : set
 
 simFileName = genFileName("benchmark")
 if os.path.exists(simFileName):
-	t, IHR = dfio.readTimeCurrentDataBinary(simFileName)
+	t, IHR = io.readTimeCurrentDataBinary(simFileName)
 else:
 	t = np.linspace(0, endTime, numPts)
 	setupForHermGauss(benchmarkNumEvals)
 	IHR, _ = st.solveIFromJSON(t, baseData)
 	del _
-	dfio.writeTimeCurrentDataBinary(simFileName, t, IHR)
+	io.writeTimeCurrentDataBinary(simFileName, t, IHR)
 harmHR = st.extractHarmonic(10, freq*endTime, IHR)
 harmNorm = l2Norm(harmHR[trim:-trim])
 print "Benchmark data loaded"
@@ -77,11 +77,11 @@ for numSamples in numEvaluations:
 	# First, do product grids
 	simFileName = genFileName("HermGauss"+str(numSamples)+"pts")
 	if os.path.exists(simFileName):
-		_, I = dfio.readTimeCurrentDataBinary(simFileName)
+		_, I = io.readTimeCurrentDataBinary(simFileName)
 	else:
 		setupForHermGaussProduct(numSamples)
 		I, _ = st.solveIFromJSON(t, baseData)
-		dfio.writeTimeCurrentDataBinary(simFileName, t, I)
+		io.writeTimeCurrentDataBinary(simFileName, t, I)
 	harm = st.extractHarmonic(10, freq*endTime, I)
 	harmErr.append(l2Norm(harmHR[trim:-trim] - harm[trim:-trim]) / harmNorm)
 	del I
@@ -99,11 +99,11 @@ for level in range(1, len(ptSeq)):
 	numPts.append(np.sum(np.array(ptSeq[:level]) * np.array(gt.reverse(ptSeq[:level]))) + np.sum(np.array(ptSeq[:level-1]) * np.array(gt.reverse(ptSeq[:level-1]))))
 	simFileName = genFileName("HermGaussSparse"+str(level)+"level")
 	if os.path.exists(simFileName):
-		_,I = dfio.readTimeCurrentDataBinary(simFileName)
+		_,I = io.readTimeCurrentDataBinary(simFileName)
 	else:
 		setupForHermGaussSparse(level)
 		I, _ = st.solveIFromJSON(t, baseData)
-		dfio.writeTimeCurrentDataBinary(simFileName, t, I)
+		io.writeTimeCurrentDataBinary(simFileName, t, I)
 	harm = st.extractHarmonic(10, freq*endTime, I)
 	harmErr.append(l2Norm(harmHR[trim:-trim] - harm[trim:-trim]) / harmNorm)
 	print "Data for level {0} loaded.".format(level)

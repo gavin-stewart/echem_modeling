@@ -6,7 +6,7 @@ import sys,getTopLevel
 # Plot and display the harmonics for the dispersion data.
 
 import matplotlib.pyplot as plt
-import tools.dataFileIO as dfio
+import tools.io as io
 import tools.solutionTools as st
 import tools.gridTools as gt
 import scipy.signal
@@ -22,7 +22,7 @@ numEvals = 40
 
 fileName = getTopLevel.makeFilePath("/simulationParameters.json")
 
-baseData = dfio.readParametersFromJSON(fileName, "Martin's experiment")
+baseData = io.readParametersFromJSON(fileName, "Martin's experiment")
 freq = baseData["freq"]
 EMean = baseData["E_0"]
 kMean = baseData["k_0"]
@@ -71,8 +71,12 @@ def setupAndSavePlots(fig, currentAx, harmAx, name):
 figLoc = raw_input("Enter the directory where the figures should be saved: ")
 
 # No dispersion.
-fileName = getTopLevel.makeFilePath("dispersion/HermGauss1pts.npz")
-t,INoDisp = dfio.readTimeCurrentDataBinary(fileName)
+ESD = 0
+kSD = 0
+tEnd = 2 * (baseData["ERev"] - baseData["EStart"]) / baseData["nu"]
+t = np.linspace(0, tEnd, tEnd * baseData["freq"] * 200) 
+baseData["bins"] = gt.productGrid(E_0Bins, 1, k_0Bins, 1)
+INoDisp, _ = st.solveIFromJSON(t, baseData)
 #Generate a zero-capacitance model 
 baseData["k_0"] = 0
 ICap, _ = st.solveIFromJSON(t, baseData)

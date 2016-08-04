@@ -4,7 +4,7 @@
 #Add top level package to python path
 import getTopLevel
 
-import tools.dataFileIO as dfio
+import tools.io as io
 import tools.solutionTools as st
 import tools.gridTools as gt
 import numpy as np
@@ -19,7 +19,7 @@ benchmarkNumEvals = 80
 
 fileName = getTopLevel.makeTopLevelPath("files/simulationParameters.json")
 dataName = "Martin's experiment"
-baseData = dfio.readParametersFromJSON(fileName, dataName)
+baseData = io.readParametersFromJSON(fileName, dataName)
 baseData["type"] = "disp-dimensional-bins"
 # Remove E_0, k_0 from the data and store them as means for the distributions.
 E_0Mean = baseData.pop("E_0", None)
@@ -78,13 +78,13 @@ setupFunctions = {"EqSpParam" : setupForEqSpParam, "EqSpProb" : setupForEqSpProb
 simFileName = genFileName("benchmark")
 print simFileName
 if os.path.exists(simFileName):
-	t, IHR = dfio.readTimeCurrentDataBinary(simFileName)
+	t, IHR = io.readTimeCurrentDataBinary(simFileName)
 else:
 	t = np.linspace(0, endTime, numPts)
 	setupForHermGauss(benchmarkNumEvals)
 	IHR, _ = st.solveIFromJSON(t, baseData)
 	del _
-	dfio.writeTimeCurrentDataBinary(simFileName, t, IHR)
+	io.writeTimeCurrentDataBinary(simFileName, t, IHR)
 harmHR = st.extractHarmonic(10, freq*endTime, IHR)
 harmNorm = l2Norm(harmHR[trim:-trim])
 print "Benchmark data loaded"
@@ -100,11 +100,11 @@ for name in names:
 		# First, do equally spaced points
 		simFileName = genFileName(name+str(numSamples)+"pts")
 		if os.path.exists(simFileName):
-			_, I = dfio.readTimeCurrentDataBinary(simFileName)
+			_, I = io.readTimeCurrentDataBinary(simFileName)
 		else:
 			setupFunctions[name](numSamples)
 			I, _ = st.solveIFromJSON(t, baseData)
-			dfio.writeTimeCurrentDataBinary(simFileName, t, I)
+			io.writeTimeCurrentDataBinary(simFileName, t, I)
 		harm = st.extractHarmonic(10, freq*endTime, I)
 		harmErr.append(l2Norm(harmHR[trim:-trim] - harm[trim:-trim]) / harmNorm)
 		print "Data for {0} samples loaded".format(numSamples)

@@ -1,6 +1,7 @@
-# Exclude files in files/convPlots
-/files.convPlots/*
+files/*
+# Compiled python
 *.pyc
+# Vim extensions
 *.swp
 *.swo
-/profilehooks.py
+*.swn

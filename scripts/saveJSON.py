@@ -1,7 +1,7 @@
 # A function to prompt the user through providing input for a JSON datafile
 import solutionTools as st
 import inspect
-import dataFileIO as dfio
+import tools.io as io
 import ast
 
 print "\nThis function will guide you through creating JSON data for specifying an experiment.\n"
@@ -23,5 +23,5 @@ for arg in solverArgs:
 	data[arg] = ast.literal_eval(raw_input("\t{0} = ".format(arg)))
 
 print "Done with data entry.\nSaving. . ."
-dfio.writeParametersToJSON(fileName, data)
+io.writeParametersToJSON(fileName, data)
 

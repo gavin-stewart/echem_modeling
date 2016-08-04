@@ -75,7 +75,7 @@ def hermgaussParam(numSamples, mean, SD, exp=False):
 
 	Note that this functions assumes that E_0 and log(k_0) are normally distributed."""
 
-	if SD == 0:
+	if np.isclose(SD, 0):
 		# No variance, will put all the points on mean.
 		return [mean], [1]
 
