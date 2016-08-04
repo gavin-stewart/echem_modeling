@@ -162,5 +162,5 @@ class IOTests(unittest.TestCase): #pylint: disable=R0904
         params = io.readDimensionalParametersFromJSON(file_name, data_name)
         self.assertFalse(params is None)
         self.assertTrue(isinstance(params, dict))
-        self.assertTrue(np.isclose(params['dE'], 150e-3))
+        self.assertTrue(np.isclose(params['ac_amplitude'], 150e-3))
         self.assertTrue(params['reverse'])

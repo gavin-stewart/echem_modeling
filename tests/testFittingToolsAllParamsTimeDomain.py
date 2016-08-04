@@ -20,7 +20,9 @@ class FittingToolsAllParamsTimeDomainTestCase(unittest.TestCase):
 	cls.params = io.readParametersFromJSON(fileName, dataName)
 	cls.tEnd = 2 * (cls.params["ERev"] - cls.params["EStart"]) / cls.params["nu"]
 	cls.t = np.linspace(0, cls.tEnd, int(np.ceil(cls.tEnd * cls.params["freq"] * 200)))
-	cls.IObs, _ = st.solveIFromJSON(cls.t, cls.params)
+	cls.time_step = t[1] - t[0]
+         cls.num_time_pts = len(t)
+         cls.IObs, _ = st.solve_reaction_from_json(cls.time_step, cls.num_time_pts, cls.params)
 
 
     def setUp(self):
@@ -36,14 +38,14 @@ class FittingToolsAllParamsTimeDomainTestCase(unittest.TestCase):
         pass
 
     def setE0k0ToCorrect(self):
-	self.exp.E_0 = self.params["E_0"]
-        self.exp.k_0 = self.params["k_0"]
+	self.exp.E_0 = self.params["eq_pot"]
+        self.exp.k_0 = self.params["eq_rate"]
 
     def setE0ToCorrect(self):
-        self.exp.E_0 = self.params["E_0"]
+        self.exp.E_0 = self.params["eq_pot"]
 
     def setk0ToCorrect(self):
-        self.exp.k_0 = self.params["k_0"]
+        self.exp.k_0 = self.params["eq_rate"]
 
     def setSliceToWholeTime(self):
         self.exp.noFaradaicSlices = [np.s_[:]]
@@ -52,10 +54,10 @@ class FittingToolsAllParamsTimeDomainTestCase(unittest.TestCase):
     def checkMatchesParams(self, *args, **kwargs):
         exp = self.exp
         exp.fitAllParamsTimeDomain(*args, **kwargs)
-	self.assertAlmostEqual(exp.Cdl, self.params["Cdl"], 6)
-	self.assertAlmostEqual(exp.Cdl1, self.params["Cdl1"], 6)
-	self.assertAlmostEqual(exp.Cdl2, self.params["Cdl2"], 6)
-	self.assertAlmostEqual(exp.Cdl3, self.params["Cdl3"], 7)
+	self.assertAlmostEqual(exp.Cdl, self.params["cdl"], 6)
+	self.assertAlmostEqual(exp.Cdl1, self.params["cdl1"], 6)
+	self.assertAlmostEqual(exp.Cdl2, self.params["cdl2"], 6)
+	self.assertAlmostEqual(exp.Cdl3, self.params["cdl3"], 7)
 	self.assertAlmostEqual(exp.freq, self.params["freq"], 3)
 
     def testFitMatchesActualOverNormalSliceNothingGiven(self):
@@ -66,7 +68,7 @@ class FittingToolsAllParamsTimeDomainTestCase(unittest.TestCase):
     def testFitFunctionMatchesActualNormalSliceOnlyCapacitanceGivenNoE0(self):
         params = self.params
         self.setk0ToCorrect()
-        self.checkMatchesParams(self.params["Cdl"], self.params["Cdl1"], self.params["Cdl2"], self.params["Cdl3"])
+        self.checkMatchesParams(self.params["cdl"], self.params["cdl1"], self.params["cdl2"], self.params["cdl3"])
 
     def testFitMatchesActualOverNormalSliceNothingGivenNoE0(self):
 	exp = self.exp
@@ -75,7 +77,7 @@ class FittingToolsAllParamsTimeDomainTestCase(unittest.TestCase):
 
     def testFitFunctionMatchesActualNormalSliceOnlyCapacitanceGivenNoE0k0(self):
         params = self.params
-        self.checkMatchesParams(params["Cdl"], params["Cdl1"], params["Cdl2"], params["Cdl3"])
+        self.checkMatchesParams(params["cdl"], params["cdl1"], params["cdl2"], params["cdl3"])
 
     def testFitMatchesActualOverNormalSliceNothingGivenNoE0k0(self):
         self.checkMatchesParams()

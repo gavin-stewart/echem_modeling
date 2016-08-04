@@ -23,10 +23,10 @@ class DispersionCoulombTests(unittest.TestCase):
 	
 	def setUp(self):
 		self.baseData = io.readParametersFromJSON('./files/simulationParameters.json', "disp Coulomb")
-		tEnd = (self.baseData["ERev"] - self.baseData["EStart"]) / self.baseData["nu"]
-		self.numPts = np.ceil(tEnd * 8.959 * 200)
+		tEnd = (self.baseData["pot_rev"] - self.baseData["pot_start"]) / self.baseData["nu"]
+		self.num_time_pts = np.ceil(tEnd * 8.959 * 200)
 	
-		self.t = np.linspace(0, tEnd, int(self.numPts))
+		self.time_step = tEnd / (self.num_time_pts - 1)
 
 	def addResistance(self):
 		self.baseData["Ru"] = 100.0
@@ -42,19 +42,19 @@ class DispersionCoulombTests(unittest.TestCase):
 
 	def addAC(self):
 		self.baseData["freq"] = 8.959
-		self.baseData["dE"] = 150e-3
+		self.baseData["ac_amplitude"] = 150e-3
 
 	def checkSatisfiesCoulomb(self):
-		I, amtNoDisp = st.solveIFromJSON(self.t, self.baseData)
+		I, amtNoDisp = st.solve_reaction_from_json(self.time_step, self.num_time_pts, self.baseData)
 		endAmt = amtNoDisp[-1]
-		INoDispInt = np.sum(I) / self.numPts
+		INoDispInt = np.sum(I) / self.num_time_pts
 		
 		for ESD in self.ESDVals:
 			for kSD in self.kSDVals:
 				self.baseData["bins"] = gt.productGrid(E0QuadFunFactory(ESD), self.numSampPts, k0QuadFunFactory(kSD), self.numSampPts)
-				I, amt = st.solveIFromJSON(self.t, self.baseData)
+				I, amt = st.solve_reaction_from_json(self.time_step, self.num_time_pts, self.baseData)
 				self.assertAlmostEqual(endAmt, amt[-1])
-				IInt = np.sum(I) / self.numPts
+				IInt = np.sum(I) / self.num_time_pts
 				self.assertAlmostEqual(IInt, INoDispInt)
 
 	def testDispersionObeysCoulombsLawDCWithNoResistanceNoCapacitance(self):

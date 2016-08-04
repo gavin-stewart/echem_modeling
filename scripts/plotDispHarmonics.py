@@ -24,8 +24,8 @@ fileName = getTopLevel.makeFilePath("/simulationParameters.json")
 
 baseData = io.readParametersFromJSON(fileName, "Martin's experiment")
 freq = baseData["freq"]
-EMean = baseData["E_0"]
-kMean = baseData["k_0"]
+EMean = baseData["eq_pot"]
+kMean = baseData["eq_rate"]
 ESDVals = [1e-3, 1e-2, 1e-1]
 kSDVals = [1,2,3]
 trim = slice(5000, -5000)
@@ -57,7 +57,7 @@ def plotCurrentAndHarmonics(I, label, currentAx, harmAx):
 		IEnvLim = IEnvMax
 	envelopes = matplotlib.collections.LineCollection([list(zip(t, IEnvUpper)), list(zip(t, IEnvLower))], label=label, color=plotColor)
 	currentAx.add_collection(envelopes)
-	harm10 = st.extractHarmonic(10, freq * t[-1], I)[trim]
+	harm10 = st.extract_harmonic(10, freq * t[-1], I)[trim]
 	harm10 = abs(scipy.signal.hilbert(harm10))
 	harmAx.plot(harm10, label=label, color=plotColor)
 
@@ -73,14 +73,16 @@ figLoc = raw_input("Enter the directory where the figures should be saved: ")
 # No dispersion.
 ESD = 0
 kSD = 0
-tEnd = 2 * (baseData["ERev"] - baseData["EStart"]) / baseData["nu"]
-t = np.linspace(0, tEnd, tEnd * baseData["freq"] * 200) 
+tEnd = 2 * (baseData["pot_rev"] - baseData["pot_start"]) / baseData["nu"]
+num_time_pts = int(np.ceil(tEnd * baseData["freq"] * 200)
+time_step = tEnd / num_time_pts
+t = np.linspace(0, tEnd, num_time_pts) 
 baseData["bins"] = gt.productGrid(E_0Bins, 1, k_0Bins, 1)
-INoDisp, _ = st.solveIFromJSON(t, baseData)
+INoDisp, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 #Generate a zero-capacitance model 
-baseData["k_0"] = 0
-ICap, _ = st.solveIFromJSON(t, baseData)
-baseData["k_0"] = kMean
+baseData["eq_rate"] = 0
+ICap, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
+baseData["eq_rate"] = kMean
 baseData["type"] = "disp-dimensional-bins"
 
 
@@ -89,7 +91,7 @@ kSD = 0
 plotCurrentAndHarmonics(INoDisp, "No disp", plotsIE0, plotsHarmE0)
 for ESD in ESDVals:
 	baseData["bins"] = gt.productGrid(E_0Bins, numEvals, k_0Bins, 1)
-	I, _ = st.solveIFromJSON(t, baseData)
+	I, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 	label = "E_0 disp " + str(ESD)
 	plotCurrentAndHarmonics(I, label, plotsIE0, plotsHarmE0) 
 
@@ -100,7 +102,7 @@ ESD = 0
 plotCurrentAndHarmonics(INoDisp, "No disp", plotsIk0, plotsHarmk0)
 for kSD in kSDVals:
 	baseData["bins"] = gt.productGrid(E_0Bins, 1, k_0Bins, numEvals)
-	I, _ = st.solveIFromJSON(t, baseData)
+	I, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 	label = "k_0 disp " + str(kSD)
 	plotCurrentAndHarmonics(I, label, plotsIk0, plotsHarmk0)
  
@@ -110,7 +112,7 @@ for kSD in kSDVals:
 plotCurrentAndHarmonics(INoDisp, "No disp", plotsIboth, plotsHarmboth)
 for ESD, kSD in zip(ESDVals, kSDVals):
 	baseData["bins"] = gt.productGrid(E_0Bins, 1, k_0Bins, numEvals)
-	I, _ = st.solveIFromJSON(t, baseData)
+	I, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 	label = "E_0 disp " + str(ESD) + " k_0 disp " + str(kSD)
 	plotCurrentAndHarmonics(I, label, plotsIboth, plotsHarmboth)
 

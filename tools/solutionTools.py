@@ -1,65 +1,66 @@
+"""A collection of tools for solving for current and manipulating solutions.
+"""
+
 import numpy as np
 import tools.conversion as conv
 import scipy.signal
-from scipy.optimize import brentq
-import inspect
 import scipy.stats.distributions
 import numpy.polynomial.legendre
 import scipy.interpolate
-from scipy.weave import inline, blitz
+from scipy.weave import inline
+import copy
+from bisect import bisect
+from warnings import warn
 
-solverFunctions = {}
-binFunctions ={}
+SOLVER_FUNCTIONS = {}
 
-tol = float(1e-8) 
-ftol = float(2e-6)
-maxIter = int(10000)
+TOL = float(1e-8)
+FTOL = float(2e-6)
+MAX_ITER = int(10000)
 
-#TODO: Put C code in a separate file to tidy up.
-
-expr = """// Python expr
-int i; 
-double t = tau0;
+C_CODE = """// Python expr
+int i;
+double t = tau_start;
 return_val = -1; //All good
 Params *parameters = (struct Params*)malloc(sizeof(struct Params));
 assert(parameters != NULL);
 
-parameters->rhof = rhof;
-parameters->gammaf = gammaf;
-parameters->gamma1f = gamma1f;
-parameters->gamma2f = gamma2f;
-parameters->gamma3f = gamma3f;
-parameters->rhoDivhf = rhof/hf;
-parameters->hf = hf;
-parameters->kappaf = kappaf;
+parameters->rho = rho;
+parameters->gamma = gamma;
+parameters->gamma1 = gamma1;
+parameters->gamma2 = gamma2;
+parameters->gamma3 = gamma3;
+parameters->rhoDivh = rho/step_size;
+parameters->h = step_size;
+parameters->kappa = kappa;
 parameters->eps_0 = eps_0;
 
 
 //Set up the I, theta pointers.
 parameters->thetaCurr = theta;
-parameters->ICurr = I;
+parameters->ICurr = current;
 
-if(fabs(parameters->rhof) > 1e-10) {
+if(fabs(parameters->rho) > 1e-10) {
     // Set up the parameter struct.
 
-    for(i = 0; i < n-1; i++) {
-        t += hf; 
-        double IRadius = (kappaf+100)*hf + 100;
+    for(i = 0; i < num_time_pts - 1; i++) {
+        t += step_size;
+        double IRadius = (kappa+100) * step_size + 100;
 
-        if(t < revTau) {
-            parameters->potNext = t + dEps * sin(omega * (t - tau0) + phi);
-            parameters->dEpsNext = 1 + omega * dEps * cos(omega * (t-tau0) + phi);
+        if(t < rev_tau) {
+            parameters->potNext = t + ac_amplitude * sin(omega * (t-tau_start) + phi);
+            parameters->dEpsNext = 1 + omega * ac_amplitude * cos(omega * (t-tau_start) + phi);
         } else {
-            parameters->potNext = 2 * revTau - t + dEps * sin(omega * (t - tau0) +phi);
-            parameters->dEpsNext = -1 + omega * dEps * cos(omega * (t - tau0) + phi);
+            parameters->potNext = 2 * rev_tau - t + ac_amplitude * sin(omega * (t-tau_start)  + phi);
+            parameters->dEpsNext = -1 + omega * ac_amplitude * cos(omega * (t-tau_start) + phi);
         }
 
-        I[i+1] = I[i] + 0.5 * IRadius;
-        double IGuess = I[i] - 0.5 * IRadius;
-         
-        if(solverSecantToFP(maxIter, (I+i+1), IGuess, &discrepParam, tol, ftol, parameters) == -1) { //Failed to converge. . .
+        current[i+1] = current[i] + 0.5 * IRadius;
+        double currentGuess = current[i] - 0.5 * IRadius;
+
+        if(solverSecantToFP(MAX_ITER, (current+i+1), currentGuess, &discrepParam, TOL, FTOL, parameters) == -1) { //Failed to converge. . .
             return_val = i;
-            fErr[0] = discrepParam(I[i+1], parameters);
+            f_err[0] = discrepParam(current[i+1], parameters);
             break;
         }
         parameters->ICurr++;
@@ -68,341 +69,360 @@ if(fabs(parameters->rhof) > 1e-10) {
     free(parameters);
 } else {
     double op, dOP;
-    for(i = 0; i < n-1; i++) {
-        t += hf;
-        if(t < revTau) {
-            op = t + dEps * sin(omega * (t - tau0)) - eps_0;
-            dOP = 1 + omega * dEps * cos(omega * (t-tau0));
+    for(i = 0; i < num_time_pts - 1; i++) {
+        t += step_size;
+        if(t < rev_tau) {
+            op = t + ac_amplitude * sin(omega * (t-tau_start) + phi) - eps_0;
+            dOP = 1 + omega * ac_amplitude * cos(omega * (t-tau_start) + phi);
         } else {
-            op = 2 * revTau - t + dEps * sin(omega * (t - tau0)) - eps_0;
-            dOP = -1 + omega * dEps * cos(omega * (t - tau0));
+            op = 2 * rev_tau - t + ac_amplitude * sin(omega * (t-tau_start) + phi) - eps_0;
+            dOP = -1 + omega * ac_amplitude * cos(omega * (t-tau_start) + phi);
         }
         double expon = exp(0.5 * op);
-        double kOx = kappaf * expon;
-        double kRed = kappaf / expon;
-        theta[i+1] = (theta[i] + hf * kOx) / (1 + hf*(kRed + kOx));
+        double kOx = kappa * expon;
+        double kRed = kappa / expon;
+        theta[i+1] = (theta[i] + step_size * kOx) / (1 + step_size * (kRed + kOx));
         double dTheta = (1-theta[i+1]) * kOx - theta[i+1] * kRed;
-        I[i+1] = gammaf * dOP + dTheta;
+        current[i+1] = gamma * dOP + dTheta;
     }
 
 }"""
 
+OLD_ARGS = ["E_0", "k_0", "dE", "EStart", "ERev"]
 
-def solveI(
-           tau, eps_0, dEps, omega, kappa, rho, gamma, gamma1, gamma2, gamma3,
-           revTau, kappaThresh=1e4, IStart = 0.0, thetaStart = 0.0, 
-           phi = 0.0, **kwargs):
-    """Solves for current using backwards Euler and returns the result as 
+def _test_deprecated_keys(kwargs):
+    """Test to see if kwargs contains deprecated keys"""
+    deprecated_keys = [key for key in OLD_ARGS if key in kwargs]
+    for key in deprecated_keys:
+        warn("Keyworks contains deprecated key {0}.".format(key))
+
+def solve_reaction_nondimensional(
+        tau_start, step_size, num_time_pts, eps_0, ac_amplitude, omega, kappa,
+        rho, gamma, gamma1, gamma2, gamma3, rev_tau, kappa_thresh=1e4,
+        current_start=0.0, theta_start=0.0, phi=0.0):
+    """Solves for current using backwards Euler and returns the result as
     a numpy array.
     """
     # Fixing alpha = 0.5 makes the analytic form, numerical evaluation nicer.
-    n = len(tau)
-    I = np.empty(n)
-    theta = np.empty(n)
-    I[0] = IStart
-    theta[0] = thetaStart
-    tau0 = float(tau[0]);
-    h = float(tau[1] - tau[0]) #Assume equally spaced time points
-    gammaf = float(gamma)
-    gamma1f = float(gamma1)
-    gamma2f = float(gamma2)
-    gamma3f = float(gamma3)
-    rhof = float(rho)
-    rhoDivhf = float(rhof/h)
-    hf = float(h)
+    current = np.empty(num_time_pts)
+    theta = np.empty(num_time_pts)
+    current[0] = current_start
+    theta[0] = theta_start
+    phi = float(phi)
+    gamma = float(gamma)
+    gamma1 = float(gamma1)
+    gamma2 = float(gamma2)
+    gamma3 = float(gamma3)
+    rho = float(rho)
+    tau_start = float(tau_start)
+    step_size = float(step_size)
+    num_time_pts = int(num_time_pts)
     omega = float(omega)
-    dEps = float(dEps)
-    if(kappa > kappaThresh):
-        kappaf = kappaThresh
+    ac_amplitude = float(ac_amplitude)
+    if kappa > kappa_thresh:
+        kappa = kappa_thresh
     else:
-        kappaf = float(kappa)
-    revTau = float(revTau)
+        kappa = float(kappa)
+    rev_tau = float(rev_tau)
     eps_0 = float(eps_0)
 
-    fErr = np.empty(1);
-         
-    cVars = ['n', 'rhof', 'theta', 'I', 'gammaf', 'gamma1f', 'gamma2f',
-             'gamma3f', 'hf', 'omega', 'dEps', 'kappaf', 'revTau', 'eps_0',
-             'tau0', 'ftol', 'tol', 'maxIter', 'fErr', 'phi']
+    f_err = np.empty(1)
+
+    c_vars = ['num_time_pts', 'rho', 'theta', 'current', 'gamma', 'gamma1',
+              'gamma2', 'gamma3', 'tau_start', 'step_size', 'omega',
+              'ac_amplitude', 'kappa', 'rev_tau', 'eps_0', 'FTOL', 'TOL',
+              'MAX_ITER', 'f_err', 'phi']
     headers = ['"solvers.c"', '"discrepancyFunctions.c"', "<stdlib.h>"]
     inc_dirs = ["/users/gavart/Private/python/electrochemistry/tools"]
-    retFlag = inline(expr, cVars, headers=headers, include_dirs=inc_dirs)
+    ret_flag = inline(C_CODE, c_vars, headers=headers, include_dirs=inc_dirs)
 
-    if retFlag != -1:
-        msgUnformatted = "Failed to converge at %d.  Values were I[%d]"\
-                       + " = %10f, I[%d]=%.10f.  Discrepency was %.10f."\
-        
-        msg = msgUnformatted %(retFlag+1, retFlag, I[retFlag], 
-                               retFlag+1, I[retFlag+1], fErr[0])
+    if ret_flag != -1:
+        msg_unformatted = "Failed to converge at %d.  Values were I[%d]"\
+                        + " = %10f, I[%d]=%.10f.  Discrepency was %.10f."\
+
+        msg = msg_unformatted %(ret_flag+1, ret_flag, current[ret_flag],
+                                ret_flag+1, current[ret_flag+1], f_err[0])
         raise ConvergenceError(msg)
-    return I,theta
+    return current, theta
 
 
-solverFunctions["nondimensional"] = solveI
+SOLVER_FUNCTIONS["nondimensional"] = solve_reaction_nondimensional
 
-def solveIFromJSON(t, jsonData):
+def solve_reaction_from_json(time_step, num_time_pts, json_data):
     """Solves for the current and amount of species A using backwards Euler
     and returns the results as numpy arrays.
-
-    This method is a wrapper around solveI and solveIDimensional which takes
-    a dictionary (perhaps read from a json file) as input."""
-    if not isinstance(jsonData, dict):
-        raise ValueError("Expected a dictionary")
+    """
+    json_data = copy.copy(json_data)
+    json_data.pop('name', None)
 
     try:
-        typeVal = jsonData['type']
+        type_val = json_data.pop('type')
     except KeyError:
-        raise ValueError("Expected jsonData to include a key 'type'")
+        raise ValueError("Expected json_data to include a key 'type'")
 
-    if typeVal not in  solverFunctions:
-        raise ValueError("Unknown type {0}".format(jsonData["type"]))
+    if type_val not in  SOLVER_FUNCTIONS:
+        raise ValueError("Unknown type {0}".format(type_val))
     else:
-        solver = solverFunctions[typeVal]
-        return solver(t, **jsonData)
-
-         
-def solveIDimensional(t, E_0, dE, freq, k_0, Ru, Cdl, Cdl1, Cdl2, Cdl3, 
-EStart, ERev, temp, nu, area, coverage, reverse, IStart = 0.0, amtStart = 0.0, phi=0.0, **kwargs):
-         """Solves for current using backwards Euler and returns the result as a numpy array.
-
-         This method is a wrapper around the nondimensional solveI method."""
-         epsStart = conv.nondimPot(temp, EStart)
-         epsRev = conv.nondimPot(temp, ERev)
-         dEps = conv.nondimPot(temp, dE)
-         eps_0 = conv.nondimPot(temp, E_0)
-
-         omega = conv.freqToNondimOmega(temp, nu, freq)
-
-         kappa = conv.nondimRate(temp, nu, k_0)
-         kappaThresh = conv.nondimRate(temp, nu, 1e6)
-         
-         tau = conv.timeToNondimVoltage(temp, nu, EStart, ERev, t, reverse)      
-
-         rho = conv.nondimResistance(temp, nu, area, coverage, Ru)
-         
-         # Note: the parameters Cdl1...3 are already nondimensional and should
-         # NOT be multiplied by the scale potential E0
-         E0 = conv.potScale(temp)
-         gamma =  conv.nondimCapacitance(temp, nu, area, coverage, Cdl)
-         gamma1 = Cdl1 
-         gamma2 = Cdl2 
-         gamma3 = Cdl3
-        IStartConv = conv.nondimCurrent(temp, nu, area, coverage, IStart)
-        thetaStart = amtStart / (area * coverage)
-
-         i, theta = solveI(tau, eps_0, dEps, omega, kappa, rho, gamma, gamma1,
-                          gamma2, gamma3, epsRev, kappaThresh = kappaThresh, 
-                          IStart = IStartConv, thetaStart = thetaStart)
-
-         I = conv.dimCurrent(temp, nu, area, coverage, i)
-         amtCovered = theta * area * coverage
-
-         return I, amtCovered
-solverFunctions["dimensional"] = solveIDimensional
+        solver = SOLVER_FUNCTIONS[type_val]
+        return solver(time_step, num_time_pts, **json_data)
 
 
-def solveIWithDispersionDimensionalBins(t, dE, freq, Ru, Cdl, Cdl1, Cdl2, Cdl3,
-EStart, ERev, temp, nu, area, coverage, bins, reverse, **kwargs):
-         """Solves for current when there is dispersion.
-         
-         The variable bins should be a list of tuples of the form (E_0Val, K_0Val, weight)."""
-         IAvg = np.zeros(len(t))
-         amtAvg = np.zeros(len(t))
-         for vals in bins:
-                           E_0Val = vals[0]
-                           k_0Val = vals[1]
-                           weight = vals[2]
+def solve_reaction_dimensional(
+        time_step, num_time_pts, eq_pot, ac_amplitude, freq, eq_rate,
+        resistance, cdl, cdl1, cdl2, cdl3, pot_start, pot_rev, temp, nu, area,
+        coverage, phi=0.0, **kwargs):
+    """Solves for current using backwards Euler and returns the result as a
+    numpy array.
 
-                           I, amt = solveIDimensional(t, E_0Val, dE, freq, k_0Val,
-                           Ru, Cdl, Cdl1, Cdl2, Cdl3, EStart, ERev, temp, 
-                           nu, area, coverage, reverse)
-                           IAvg += weight * I
-                           amtAvg += weight * amt
-         return IAvg, amtAvg
-solverFunctions["disp-dimensional-bins"] = solveIWithDispersionDimensionalBins
+    This method is a wrapper around the nondimensional method.
+    """
+    _test_deprecated_keys(kwargs)
+    eps_start = conv.nondimPot(temp, pot_start)
+    eps_rev = conv.nondimPot(temp, pot_rev)
+    ac_amplitude = conv.nondimPot(temp, ac_amplitude)
+    eps_0 = conv.nondimPot(temp, eq_pot)
 
-def widthAtHalfMaximum(I, time, nu, tRevIndex=None):
-         """Returns the width at half-maximum for a current I driven by a dc current with ramp nu."""
-         if tRevIndex is None:
-                  tRev = len(time)-1
+    omega = conv.freqToNondimOmega(temp, nu, freq)
 
-         maxI = -np.inf
-         maxInd = 0
-         for ind,IVal in zip(range(len(I)), I):
-                  if IVal > maxI:
-                           maxI = IVal
-                           maxInd = ind
-                  #Search only until current reverses
-                  if time[ind] > tRev:
-                           break
-         
-         halfMax = maxI * 0.5;
-         # Binary search for location of left half-maximum
-         lower = 0
-         upper = maxInd
-         while upper - lower > 1:
-                  midpt = (lower + upper)/2
-                  if I[midpt] > halfMax:
-                           upper = midpt
-                  elif I[midpt] < halfMax:
-                           lower = midpt
-                  else: #Exact equality
-                           lower = midpt
-                           upper = midpt
-         if maxI - I[lower] > I[upper] - maxI:
-                  left = upper
-         else:
-                  left = lower
-         # Binary search for location of right half-maximum
-         lower = maxInd
-         upper = tRev
-         while upper - lower > 1:
-                  midpt = (lower + upper)/2
-                  if I[midpt] > halfMax:
-                           lower = midpt
-                  elif I[midpt] < halfMax:
-                           upper = midpt
-                  else: #Exact equality
-                           lower = midpt
-                           upper = midpt
-         if maxI - I[upper] < I[lower] - maxI:
-                  right = upper
-         else:
-                  right = lower
+    kappa = conv.nondimRate(temp, nu, eq_rate)
+    kappa_thresh = conv.nondimRate(temp, nu, 1e6)
 
-         return (time[right] - time[left]) * nu
+    time_step /= conv.timeScale(temp, nu)
 
-def shortCenteredKaiserWindow(halflength, center, N):
-         """Returns a Kaiser window of given half-length and center."""
-         window = np.zeros(N)
-         if center < 0 or center > N:
-                  raise ValueError("Center {0} is outside the range of values [0,{1}]".format(center, N))
-         windowLeft = int(np.floor(center - halflength))
-         windowRight = int(np.ceil(center + halflength))
+    rho = conv.nondimResistance(temp, nu, area, coverage, resistance)
 
-         if windowLeft >= 0:
-                  windowLeftTrunc = windowLeft
-                  leftTrunc = 0
-         else:
-                  windowLeftTrunc = 0
-                  leftTrunc = windowLeftTrunc - windowLeft
+    # Note: the parameters cdl1...3 are already nondimensional and should
+    # NOT be multiplied by the scale potential E0
+    gamma = conv.nondimCapacitance(temp, nu, area, coverage, cdl)
+    gamma1 = cdl1
+    gamma2 = cdl2
+    gamma3 = cdl3
 
-         if windowRight < N:
-                  windowRightTrunc = windowRight
-                  rightTrunc = leftTrunc + windowRightTrunc - windowLeftTrunc + 1 
-         else:
-                  windowRightTrunc = N - 1
-                  rightTrunc = leftTrunc + windowRightTrunc - windowLeftTrunc + 1 
-         window[windowLeftTrunc:windowRightTrunc+1] = scipy.signal.kaiser(windowRight-windowLeft+1, 14)[leftTrunc:rightTrunc]
-         return window
+    current_nondim, theta = solve_reaction_nondimensional(
+        eps_start, time_step, num_time_pts, eps_0, ac_amplitude, omega,
+        kappa, rho, gamma, gamma1, gamma2, gamma3, eps_rev,
+        kappa_thresh=kappa_thresh, phi=phi)
 
-def extractHarmonic(n, freq, data):
-         """Returns the nth harmonic of a given frequency extracted from real data.
+    current_dimen = conv.dimCurrent(temp, nu, area, coverage, current_nondim)
+    amt_covered = theta * area * coverage
 
-         Note that a Kaiser window is used to extract the harmonic."""
-         fourier = np.fft.rfft(data)
-         windowHW = 0.75 * freq
-         window = shortCenteredKaiserWindow(windowHW, n*freq, len(fourier))
-         return np.fft.irfft(fourier * window)
+    return current_dimen, amt_covered
+SOLVER_FUNCTIONS["dimensional"] = solve_reaction_dimensional
 
-def solveIDimensionalMC(t, numRuns, dE, freq, Ru, Cdl, Cdl1, Cdl2, Cdl3,
-EStart, ERev, temp, nu, area, coverage, E_0Mean, E_0SD, k_0Mean, k_0SD, reverse, **kwargs):
-         if E_0SD == 0:
-                  E_0Vals = np.repeat(E_0Mean, numRuns)
-         else:
-                  E_0Vals = np.random.normal(E_0Mean, E_0SD, numRuns)
-         if k_0SD == 0:
-                  k_0Vals = np.repeat(k_0Mean, numRuns)
-         else:
-                  k_0Vals = k_0Mean * np.power(2,np.random.normal(0, k_0SD, numRuns))
 
-         def solveIInner(E_0, k_0,):
-                  # Use the args passed to the function.
-                  return solveIDimensional(t, E_0, dE, freq, k_0, Ru, Cdl, Cdl1, Cdl2, Cdl3, 
-                  EStart, ERev, temp, nu, area, coverage, reverse)
-         IAgg, amtAgg = reduce(lambda a,b: (a[0]+b[0], a[1]+b[1]), map(solveIInner, E_0Vals, k_0Vals))
-         return IAgg/numRuns, amtAgg/numRuns
-solverFunctions["disp-dimensional-MC"] = solveIDimensionalMC
+def solve_reaction_disp_dim_bins(
+        time_step, num_time_pts, ac_amplitude, freq, resistance, cdl, cdl1,
+        cdl2, cdl3, pot_start, pot_rev, temp, nu, area, coverage, bins,
+        **kwargs):
+    """Solves for current when there is dispersion.
 
-def extractPeaks(x, y, numPasses=3):
-         """Returns a tuple containing a list of x values and yvalues where the maximums of the data x,y occur."""
-         if len(x) != len(y):
-                  raise ValueError('Expected x and y to have equal lengths')
+    The variable bins should be a list of tuples of the form
+    (E_0Val, K_0Val, weight).
+    """
+    _test_deprecated_keys(kwargs)
+    current_avg = np.zeros(num_time_pts)
+    amt_avg = np.zeros(num_time_pts)
+    for vals in bins:
+        eq_potential = vals[0]
+        rate_const = vals[1]
+        weight = vals[2]
 
-         n = len(x)
+        current, amt = solve_reaction_dimensional(time_step, num_time_pts,
+                                                  eq_potential, ac_amplitude,
+                                                  freq, rate_const, resistance,
+                                                  cdl, cdl1, cdl2, cdl3,
+                                                  pot_start, pot_rev, temp, nu,
+                                                  area, coverage)
+        current_avg += weight * current
+        amt_avg += weight * amt
+    return current_avg, amt_avg
+SOLVER_FUNCTIONS["disp-dimensional-bins"] = solve_reaction_disp_dim_bins
 
-         #Sort the x values.
-         zipped = zip(x,y)
-         zipped.sort(key=lambda z: z[0]) #Sort by x value.
-         x,y = zip(*zipped)         
+def half_maximum_width(current, time, nu, t_rev_index=None):
+    """Returns the width at half-maximum for a current I driven by a dc
+    current with ramp nu.
+    """
+    if t_rev_index is None:
+        t_rev_ind = len(time)-1
+    current = current[:t_rev_ind]
+    max_current = -np.inf
+    max_current_ind = None
+    for ind, current_val in enumerate(current):
+        if current_val > max_current:
+            max_current = current_val
+            max_current_ind = ind
 
-         xVals = []
-         yVals = []
-         if y[0] > y[1]:
-                  xVals.append(x[0])
-                  yVals.append(y[0])
-         
-         for yPrev,xCurr,yCurr,yNext in zip(y[:-2], x[1:-1], y[1:-1], y[2:]):
-                  if yCurr >= yPrev and yCurr >= yNext:
-                           xVals.append(xCurr)
-                           yVals.append(yCurr)
+    half_max = max_current * 0.5
+    left = bisect(current, half_max, 0, max_current_ind)
+    # Reversed bisection search
+    right = t_rev_ind - bisect(list(reversed(current)), half_max,
+                               0, t_rev_ind- max_current_ind)
+    return (time[right] - time[left]) * nu
 
-         if y[-1] > y[-2]:
-                  xVals.append(x[-1])
-                  yVals.append(y[-1])
+def short_centered_kaiser_window(halflength, center, array_size):
+    """Returns a Kaiser window of given half-length and center."""
+    window = np.zeros(array_size)
+    if center < 0 or center > array_size:
+        msg_unformatted = "Center {0} is outside the range of values [0,{1}]"
+        msg = msg_unformatted.format(center, array_size)
+        raise ValueError(msg)
+    window_left = int(np.floor(center - halflength))
+    window_right = int(np.ceil(center + halflength))
 
-         for p in range(1, numPasses):
-         toRemove = []
-                  for n in range(1, len(yVals) - 2):
-                           if yVals[n] < yVals[n - 1] and yVals[n] < yVals[n+1]:
-                                    #Probably a false peak.
-                                    toRemove.append(n)
-                  for n in reversed(toRemove):
-                           del xVals[n]
-                           del yVals[n]
+    if window_left >= 0:
+        window_left_trunc = window_left
+        left_trunc = 0
+    else:
+        window_left_trunc = 0
+        left_trunc = window_left_trunc - window_left
 
-         return xVals, yVals
+    if window_right < array_size:
+        window_right_trunc = window_right
+        right_trunc = left_trunc + window_right_trunc - window_left_trunc + 1
+    else:
+        window_right_trunc = array_size - 1
+        right_trunc = left_trunc + window_right_trunc - window_left_trunc + 1
+    kaiser = scipy.signal.kaiser(window_right-window_left+1, 14)
+    kaiser = kaiser[left_trunc:right_trunc]
+    window[window_left_trunc:window_right_trunc+1] = kaiser
+    return window
+
+def extract_harmonic(harmonic_number, freq, data):
+    """Returns the nth harmonic of a given frequency extracted from real data.
+
+    Note that a Kaiser window is used to extract the harmonic."""
+    fourier = np.fft.rfft(data)
+    window_halfwidth = 0.75 * freq
+    window = short_centered_kaiser_window(window_halfwidth,
+                                          harmonic_number*freq, len(fourier))
+    return np.fft.irfft(fourier * window)
+
+def solve_reaction_disp_dim_MC(
+        time_step, num_time_pts, num_runs, ac_amplitude, freq, resistance,
+        cdl, cdl1, cdl2, cdl3, pot_start, pot_rev, temp, nu, area, coverage,
+        eq_pot_mean, E_0SD, eq_rate_mean, k_0SD, **kwargs):
+    """Solves the reaction with dispersion using Monte-Carlo sampling."""
+    _test_deprecated_keys(kwargs)
+    if E_0SD == 0:
+        eq_pot_vals = np.repeat(eq_pot_mean, num_runs)
+    else:
+        eq_pot_vals = np.random.normal(eq_pot_mean, E_0SD, num_runs)
+    if k_0SD == 0:
+        eq_rate_vals = np.repeat(eq_rate_mean, num_runs)
+    else:
+        eq_rate_vals = eq_rate_mean * np.power(2, np.random.normal(0, k_0SD,
+                                                                   num_runs))
+
+    def solve_reaction_inner(eq_pot, eq_rate):
+        """Wrapper around solve_reaction_dimensional."""
+        return solve_reaction_dimensional(time_step, num_time_pts, eq_pot,
+                                          ac_amplitude, freq, eq_rate,
+                                          resistance, cdl, cdl1, cdl2, cdl3,
+                                          pot_start, pot_rev, temp, nu, area,
+                                          coverage)
+    solution_list = [solve_reaction_inner(eq_pot, eq_rate)
+                     for eq_pot, eq_rate in eq_pot_vals, eq_rate_vals]
+    current_agg, amt_agg = reduce(lambda a, b: (a[0]+b[0], a[1]+b[1]),
+                                  solution_list)
+    return current_agg / num_runs, amt_agg / num_runs
+SOLVER_FUNCTIONS["disp-dimensional-MC"] = solve_reaction_disp_dim_MC
+
+def extract_peaks(x_vals, y_vals, passes=3):
+    """Returns a tuple containing a list of x values and yvalues where the
+    maximums of the data x,y occur.
+    """
+    if len(x_vals) != len(y_vals):
+        raise ValueError('Expected x and y to have equal lengths')
+
+    n = len(x_vals)
+
+    #Sort the x values.
+    zipped = zip(x_vals, y_vals)
+    zipped.sort(key=lambda z: z[0]) #Sort by x value.
+    x_vals, y_vals = zip(*zipped)
+
+    x_peaks = []
+    y_peaks = []
+    if y_vals[0] > y_vals[1]:
+        x_peaks.append(x_vals[0])
+        y_peaks.append(y_vals[0])
+
+    for y_prev, x_curr, y_curr,\
+          y_next in zip(y_vals[:-2], x_vals[1:-1], y_vals[1:-1], y_vals[2:]):
+        if y_curr >= y_prev and y_curr >= y_next:
+            x_peaks.append(x_curr)
+            y_peaks.append(y_curr)
+
+    if y_vals[-1] > y_vals[-2]:
+        x_peaks.append(x_vals[-1])
+        y_peaks.append(y_vals[-1])
+
+    for _ in xrange(1, passes):
+        toRemove = []
+        for n in range(1, len(y_peaks) - 2):
+            if y_peaks[n] < y_peaks[n - 1] and y_peaks[n] < y_peaks[n + 1]:
+                #Probably a false peak.
+                toRemove.append(n)
+        for n in reversed(toRemove):
+            del x_peaks[n]
+            del y_peaks[n]
+
+        return x_peaks, y_peaks
 
 def interpolatedTotalEnvelope(x, y):
-         """Returns an estimate of the envelope of the signal (x,y) by interpolating the maxima of (x,abs(y))"""
-         xPeak, yPeak = extractPeaks(x, abs(y))
-         if x[0] not in xPeak:
-                  xPeak.append(x[0])
-                  yPeak.append(abs(y[0]))
-         if x[-1] not in xPeak:
-                  xPeak.append(x[-1])
-                  yPeak.append(abs(y[-1]))
-         xPeak, yPeak = zip(*sorted(zip(xPeak, yPeak), key=lambda n: n[0]))
-         result = scipy.interpolate.interp1d(np.array(xPeak), np.array(yPeak), kind='linear')(x)
-         return result
+    """Returns an estimate of the envelope of the signal (x,y) by
+    interpolating the maxima of (x,abs(y))
+    """
+    xPeak, yPeak = extract_peaks(x, abs(y))
+    if x[0] not in xPeak:
+        xPeak.append(x[0])
+        yPeak.append(abs(y[0]))
+    if x[-1] not in xPeak:
+        xPeak.append(x[-1])
+        yPeak.append(abs(y[-1]))
+        xPeak, yPeak = zip(*sorted(zip(xPeak, yPeak), key=lambda n: n[0]))
+    return scipy.interpolate.interp1d(np.array(xPeak),
+                                      np.array(yPeak),
+                                      kind='linear')(x)
 
-def interpolatedUpperEnvelope(x,y):
-         """Returns an estimate of the envelope of the signal (x,hy) by interpolating the maxima of (x, y)"""
-         xPeak, yPeak = extractPeaks(x, y)
-         if x[0] not in xPeak:
-                  xPeak.append(x[0])
-                  yPeak.append(abs(y[0]))
-         if x[-1] not in xPeak:
-                  xPeak.append(x[-1])
-                  yPeak.append(abs(y[-1]))
-         xPeak, yPeak = zip(*sorted(zip(xPeak, yPeak), key=lambda n: n[0]))
-         return scipy.interpolate.interp1d(np.array(xPeak), np.array(yPeak), kind='linear')(x)
+def interpolatedUpperEnvelope(x, y):
+    """Returns an estimate of the envelope of the signal (x,hy) by
+    interpolating the maxima of (x, y)
+    """
+    xPeak, yPeak = extract_peaks(x, y)
+    if x[0] not in xPeak:
+        xPeak.append(x[0])
+        yPeak.append(abs(y[0]))
+    if x[-1] not in xPeak:
+        xPeak.append(x[-1])
+        yPeak.append(abs(y[-1]))
+    xPeak, yPeak = zip(*sorted(zip(xPeak, yPeak), key=lambda n: n[0]))
+    return scipy.interpolate.interp1d(np.array(xPeak),
+                                      np.array(yPeak),
+                                      kind='linear')(x)
 
-def interpolatedLowerEnvelope(x,y):
-         """Returns an estimate of the envelope of the signal (x,hy) by interpolating the maxima of (x, -y)"""
-         xPeak, yPeak = extractPeaks(x, -y)
-         if x[0] not in xPeak:
-                  xPeak.append(x[0])
-                  yPeak.append(abs(y[0]))
-         if x[-1] not in xPeak:
-                  xPeak.append(x[-1])
-                  yPeak.append(abs(y[-1]))
-         xPeak, yPeak = zip(*sorted(zip(xPeak, yPeak), key=lambda n: n[0]))
-         return -1 * scipy.interpolate.interp1d(np.array(xPeak), np.array(yPeak), kind='linear')(x)
+def interpolatedLowerEnvelope(x, y):
+    """Returns an estimate of the envelope of the signal (x,hy) by
+    interpolating the maxima of (x, -y)
+    """
+    xPeak, yPeak = extract_peaks(x, -y)
+    if x[0] not in xPeak:
+        xPeak.append(x[0])
+        yPeak.append(abs(y[0]))
+    if x[-1] not in xPeak:
+        xPeak.append(x[-1])
+        yPeak.append(abs(y[-1]))
+    #Sort by x value
+    xPeak, yPeak = zip(*sorted(zip(xPeak, yPeak), key=lambda n: n[0]))
+    return -1 * scipy.interpolate.interp1d(np.array(xPeak),
+                                           np.array(yPeak),
+                                           kind='linear')(x)
 
 def getSolverNames():
-         return solverFunctions.keys()
+    """Return the names of the solver functions contained in this module."""
+    return SOLVER_FUNCTIONS.keys()
 
 class ConvergenceError(RuntimeError):
-         def __init__(self, *args):
-                  super(ConvergenceError, self).__init__(*args)
+    """An error indicating a numerical method has failed to converge."""
+    def __init__(self, *args):
+        super(ConvergenceError, self).__init__(*args)

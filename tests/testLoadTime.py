@@ -35,19 +35,19 @@ import numpy as np
 def genRandParams():
 	"""Return a random parameter set as a dictionary"""
 	data = {"temp" : 293.15, "nu" : 27.94e-3, "area" : 0.03, "coverage" : 1.26e-11, "reverse" : True, "EStart" : -0.85, "ERev" : -0.1, "freq" : 8.959, "dE" : 150e-3, "type" : "dimensional"}
-	data["E_0"] = np.random.normal(loc=-0.4, scale = 1e-2)
-	data["k_0"] = np.random.lognormal(mean=np.log(4000.0), sigma=2)
-	data["Ru"] = np.random.lognormal(mean=np.log(100.0), sigma=1e-2)
-	data["Cdl"] = np.random.lognormal(mean=1e-3, sigma=1e-4)
-	data["Cdl1"] = np.random.normal(loc=5e-3, scale=1e-4)
-	data["Cdl2"] = np.random.normal(loc=2.5e-3, scale=5e-5)
-	data["Cdl3"] = np.random.normal(loc=1e-6, scale=1e-7)
+	data["eq_pot"] = np.random.normal(loc=-0.4, scale = 1e-2)
+	data["eq_rate"] = np.random.lognormal(mean=np.log(4000.0), sigma=2)
+	data["resistance"] = np.random.lognormal(mean=np.log(100.0), sigma=1e-2)
+	data["cdl"] = np.random.lognormal(mean=1e-3, sigma=1e-4)
+	data["cdl1"] = np.random.normal(loc=5e-3, scale=1e-4)
+	data["cdl2"] = np.random.normal(loc=2.5e-3, scale=5e-5)
+	data["cdl3"] = np.random.normal(loc=1e-6, scale=1e-7)
 	return data
 
 @timeit
 def generateFromScratch():
 	for jsonData in data:
-		I, _ = st.solveIFromJSON(t, jsonData)
+		I, _ = st.solve_reaction_from_json(time_step, num_time_pts, jsonData)
  
 
 @timeit
@@ -65,10 +65,13 @@ def readFromFileUncompressed():
 # Initialize data to be a list of dictionaries.
 data = []
 t = np.linspace(0, timeEnd, int(np.ceil(timeEnd * 8.959 * 200)))
+num_time_pts = int(np.ceil(timeEnd * 8.959 * 200))
+time_step = timeEnd / (num_time_pts - 1)
+
 for i in range(NUM_TRACE):
 	dataCurr = genRandParams()
 	data.append(dataCurr)
-	I, _ = st.solveIFromJSON(t, dataCurr)
+	I, _ = st.solve_reaction_from_json(time_step, num_time_pts, dataCurr)
 	#Save compressed and uncompressed copies.
 	io.writeTimeCurrentDataBinaryCompressed(os.path.join(loadPath, "compressed/data"+str(i)+".npz"), t, I, overwrite=True)		
 	io.writeTimeCurrentDataBinaryUncompressed(os.path.join(loadPath, "uncompressed/data"+str(i)+".npz"), t, I, overwrite=True)

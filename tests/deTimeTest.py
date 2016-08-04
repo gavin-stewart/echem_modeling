@@ -27,31 +27,30 @@ dataName = "Martin's experiment"
 baseData = io.readParametersFromJSON(fileName, dataName)
 
 endTime = (baseData["ERev"] - baseData["EStart"]) /baseData["nu"]
-numPts = int(np.ceil(PTS_PER_WAVE * baseData["freq"] * 2 * endTime))
-trim = int(np.floor(numPts / 100))
+num_time_pts = int(np.ceil(PTS_PER_WAVE * baseData["freq"] * 2 * endTime))
+trim = int(np.floor(num_time_pts / 100))
 
-t = np.linspace(0, endTime, numPts)
-
+time_step = endTime / (num_time_pts - 1)
 @profile
 def solveODE(numRep = 100, plot = False):
 	for i in xrange(numRep):
-		_,__ = st.solveIFromJSON(t, baseData)
+		_,__ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 		if(i==0 and plot):
 			plt.plot(t, _)
-baseData["k_0"] = 1e11
-baseData["E_0"] = -0.1
+baseData["eq_rate"] = 1e11
+baseData["eq_pot"] = -0.1
 solveODE(100)
-baseData["E_0"] = -0.2
+baseData["eq_pot"] = -0.2
 solveODE(100)
-baseData["E_0"] = -0.3
+baseData["eq_pot"] = -0.3
 solveODE(100)
-baseData["E_0"] = -0.4
+baseData["eq_pot"] = -0.4
 solveODE(100)
-baseData["E_0"] = -0.5
+baseData["eq_pot"] = -0.5
 solveODE(100)
-baseData["E_0"] = -0.6
+baseData["eq_pot"] = -0.6
 solveODE(100)
-baseData["E_0"] = -0.7
+baseData["eq_pot"] = -0.7
 solveODE(100)
 plt.show()
 

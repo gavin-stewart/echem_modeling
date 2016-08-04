@@ -38,7 +38,7 @@ def writeTimeCurrentData(fileName, t, I, overwrite=False):
     if len(t) != len(I):
         msg = "Expected time and current lists to have the same length.  "\
             + "Time length was {0}".format(len(t))\
-            + " and current length was {1}.".format(len(I))
+            + " and current length was {0}.".format(len(I))
         raise ValueError(msg)
 
     if os.path.exists(fileName) and not overwrite:

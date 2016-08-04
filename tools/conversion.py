@@ -29,14 +29,10 @@ def timeScale(temp, nu):
 	return potScale(temp) / nu
 
 def timeToNondimVoltage(temp, nu, EStart, ERev,t, reverse=True):
-	T0 = timeScale(temp, nu)
-	E0 = potScale(temp)
-	n = len(t)
-	if reverse:
-		return np.linspace(EStart/E0, EStart / E0 + 2*(ERev - EStart) / (nu * T0), n)
-	else:
-		return np.linspace(EStart/E0, EStart / E0 + (ERev - EStart) / (nu * T0), n)
-
+    E0 = potScale(temp)
+    n = len(t)
+    nondim_time = (t * nu + EStart) / E0
+    return nondim_time
 # Frequency functions
 def freqToDimOmega(freq):
 	return 2*np.pi*freq

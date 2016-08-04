@@ -61,10 +61,12 @@ class ACExperiment(object):
     def _capacitanceAndFreqObjectiveFunction(self, capFreqParams):
         Cdl, Cdl1, Cdl2, Cdl3, freq = self._unscaleCapFreqParams(capFreqParams)
         try:
-            I, _ = st.solveIDimensional(self.t, self.E_0, self.dE, freq, 
-                            self.k_0, self.Ru, Cdl, Cdl1, Cdl2, Cdl3, 
-                            self.EStart, self.ERev, self.temp, self.nu,
-                            self.area, self.coverage, self.reverse)
+            I, _ = st.solve_reaction_dimensional(self.t, self.E_0, self.dE,
+                                                 freq, self.k_0, self.Ru, Cdl,
+                                                 Cdl1, Cdl2, Cdl3,
+                                                 self.EStart, self.ERev, 
+                                                 self.temp, self.nu, self.area,
+                                                 self.coverage)
 
         except st.ConvergenceError:
             return np.nan
@@ -76,10 +78,11 @@ class ACExperiment(object):
     def _timeDomainObjectiveFunction(self, params):
         Cdl, Cdl1, Cdl2, Cdl3, freq, E_0, k_0 = self._unscaleAllParams(params)
         try:
-            I, _ = st.solveIDimensional(self.t, E_0, self.dE, freq, k_0, 
-                             self.Ru, Cdl, Cdl1, Cdl2, Cdl3, self.EStart, 
-                             self.ERev, self.temp, self.nu, self.area, 
-                             self.coverage, self.reverse)
+            I, _ = st.solve_reaction_dimensional(self.t, E_0, self.dE, freq, 
+                                                 k_0, self.Ru, Cdl, Cdl1, Cdl2,
+                                                 Cdl3, self.EStart, self.ERev,
+                                                 self.temp, self.nu,
+                                                 self.area, self.coverage)
 
         except st.ConvergenceError:
             return np.nan
@@ -125,7 +128,7 @@ class ACExperiment(object):
         """Approximate the frequency by taking the average distance between 
         the peaks in IObs.
         """
-        tPeak, _ = st.extractPeaks(self.t, self.IObs)
+        tPeak, _ = st.extract_peaks(self.t, self.IObs)
         if len(tPeak) < 2:
             pass
         else:
@@ -134,10 +137,12 @@ class ACExperiment(object):
     def plotFitDiscrepancy(self):
         """Plot the discrepency between the fitted values and observations.
         """
-        IFit, _ = st.solveIDimensional(self.t, self.E_0, self.dE, self.freq, self.k_0, 
-                      self.Ru, self.Cdl, self.Cdl1, self.Cdl2, self.Cdl3, self.EStart, 
-                      self.ERev, self.temp, self.nu, self.area, 
-                      self.coverage, self.reverse)
+        IFit, _ = st.solve_reaction_dimensional(self.t, self.E_0, self.dE,
+                                                self.freq, self.k_0, self.Ru,
+                                                self.Cdl, self.Cdl1, self.Cdl2,
+                                                self.Cdl3, self.EStart,
+                                                self.ERev, self.temp, self.nu,
+                                                self.area, self.coverage)
 
         plt.plot(self.t, abs(self.IObs - IFit))
 

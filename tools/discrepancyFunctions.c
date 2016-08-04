@@ -2,18 +2,18 @@
 
 typedef struct Params {
     double potNext;
-    double rhof;
+    double rho;
     double INext;
     double* ICurr;
-    double gammaf;
-    double gamma1f;
-    double gamma2f;
-    double gamma3f;
-    double rhoDivhf;
-    double hf;
+    double gamma;
+    double gamma1;
+    double gamma2;
+    double gamma3;
+    double rhoDivh;
+    double h;
     double* thetaCurr;
     double dEpsNext;
-    double kappaf;
+    double kappa;
     double eps_0;
 } Params;
 
@@ -33,14 +33,14 @@ double discrep(double potNext, double rhof, double INext, double ICurr,
 
 double discrepParam(double INext, void *params) {
     Params* p = (Params*)params;
-    double eta = p->potNext - p->rhof * INext;
-    double cap = p->gammaf * (1 + eta * (p->gamma1f + eta * (p->gamma2f + eta * p->gamma3f)));
+    double eta = p->potNext - p->rho * INext;
+    double cap = p->gamma * (1 + eta * (p->gamma1 + eta * (p->gamma2 + eta * p->gamma3)));
     eta -= p->eps_0;
     double expon = exp(0.5 * eta);
-    double kRed = p->kappaf / expon;
-    double kOx = p->kappaf * expon;
-    *(p->thetaCurr + 1) = (*(p->thetaCurr) + p->hf * kOx) / (1 + p->hf*(kOx+kRed));
-    return cap * (p->dEpsNext - p->rhoDivhf * (INext - *(p->ICurr))) + (1.0 - *(p->thetaCurr + 1) ) * kOx - *(p->thetaCurr + 1)  * kRed - INext;
+    double kRed = p->kappa / expon;
+    double kOx = p->kappa * expon;
+    *(p->thetaCurr + 1) = (*(p->thetaCurr) + p->h * kOx) / (1 + p->h*(kOx+kRed));
+    return cap * (p->dEpsNext - p->rhoDivh * (INext - *(p->ICurr))) + (1.0 - *(p->thetaCurr + 1) ) * kOx - *(p->thetaCurr + 1)  * kRed - INext;
 }
 
 double discrepStep(double potNext, double rhof, double INext, double ICurr,
@@ -70,27 +70,27 @@ double discrepStep(double potNext, double rhof, double INext, double ICurr,
 
 double discrepStepParam(double INext, double* fVal, void * args) {
     Params* p = (Params*)args;
-    double eta = p->potNext - p->rhof * INext;
-    double cap = p->gammaf * 
-        (1 + eta * (p->gamma1f + eta * (p->gamma2f + eta * p->gamma3f)));
+    double eta = p->potNext - p->rho * INext;
+    double cap = p->gamma * 
+        (1 + eta * (p->gamma1 + eta * (p->gamma2 + eta * p->gamma3)));
     eta -= p->eps_0;
     double expon = exp(0.5 * eta);
-    double kRed = p->kappaf / expon;
-    double kOx = p->kappaf * expon;
-    double denom = (1 + p->hf*(kOx+kRed));
-    double dThetaNext = p->hf * (-kOx - *(p->thetaCurr + 1) * 
+    double kRed = p->kappa / expon;
+    double kOx = p->kappa * expon;
+    double denom = (1 + p->h*(kOx+kRed));
+    double dThetaNext = p->h * (-kOx - *(p->thetaCurr + 1) * 
                         (kRed - kOx)) / denom;
  
-    *(p->thetaCurr + 1) = (*(p->thetaCurr) + p->hf * kOx) /
-                          (1 + p->hf*(kOx+kRed));
-    *fVal = cap * (p->dEpsNext - p->rhoDivhf * (INext - *(p->ICurr))) +
+    *(p->thetaCurr + 1) = (*(p->thetaCurr) + p->h * kOx) /
+                          (1 + p->h*(kOx+kRed));
+    *fVal = cap * (p->dEpsNext - p->rhoDivh * (INext - *(p->ICurr))) +
                 (1.0 - *(p->thetaCurr + 1) ) * kOx - *(p->thetaCurr + 1) 
                 * kRed - INext;
-    double dCap = p->gammaf * 
-                (p->gamma1f + eta * (2 * p->gamma2f + eta * 3 * p->gamma3f));
-    double fPrime = -cap * p->rhoDivhf +
-                 dCap * (p->dEpsNext - p->rhoDivhf * (INext - *(p->ICurr))) -
-                 p->rhof * 0.5 * 
+    double dCap = p->gamma * 
+                (p->gamma1 + eta * (2 * p->gamma2 + eta * 3 * p->gamma3));
+    double fPrime = -cap * p->rhoDivh +
+                 dCap * (p->dEpsNext - p->rhoDivh * (INext - *(p->ICurr))) -
+                 p->rho * 0.5 * 
                     (dThetaNext * (kOx + kRed) - 
                     (*(p->thetaCurr + 1) - 1) * kOx +
                     *(p->thetaCurr + 1) * kRed) - 1;

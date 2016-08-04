@@ -56,7 +56,9 @@ print "Generating data for lower numbers of points"
 for n in nVals:
 	print "\tAttempting to find current with {0} steps. . .".format(n)
 	t = np.linspace(0,tEnd,n)
-	I, amt = st.solveIDimensional(t, E_0, dE, freq, k_0, Ru, Cdl, Cdl1, 
+         time_step = t[1] - t[0]
+         num_time_pts = len(t)
+	I, amt = st.solve_reaction_dimensional(time_step, num_time_pts, E_0, dE, freq, k_0, Ru, Cdl, Cdl1, 
 	Cdl2, Cdl3, EStart, ERev, temp, nu, area, coverage, True)
 	IVals.append(I)
 	print "\tDone"
@@ -83,7 +85,7 @@ maxErrHarm = []
 hrHarmonics = []
 harm10Err = []
 for h in harmonics:
-	hrHarmonics.append(irfft(fourierHR * st.shortCenteredKaiserWindow(0.75*freq*tEnd, h*freq* tEnd, len(fourierHR))))
+	hrHarmonics.append(irfft(fourierHR * st.short_centered_kaiser_window(0.75*freq*tEnd, h*freq* tEnd, len(fourierHR))))
 	maxErrHarm.append(l2ScaledNorm(hrHarmonics[-1]))
 	print "Scaled l2 norm of the high-res data for harmonic #{0} was {1}".format(h, maxErrHarm[-1])
 for n,I in zip(nVals, IVals):
@@ -92,7 +94,7 @@ for n,I in zip(nVals, IVals):
 	fourier = rfft(I)
 	for h, maxError in zip(harmonics, maxErrHarm):
 		harmHR = hrHarmonics[h-1]
-		harm = irfft(fourier * st.shortCenteredKaiserWindow(0.75*freq * tEnd, h*freq * tEnd, len(fourier)))
+		harm = irfft(fourier * st.short_centered_kaiser_window(0.75*freq * tEnd, h*freq * tEnd, len(fourier)))
 		dsRate = int(np.floor( (len(harmHR)) / (len(harm))))
 		harmHR = downSample(harmHR, dsRate)
 		err = l2ScaledNorm((harmHR- harm)[trim:-trim])

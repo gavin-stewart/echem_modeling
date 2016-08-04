@@ -22,13 +22,13 @@ dataName = "Martin's experiment"
 baseData = io.readParametersFromJSON(fileName, dataName)
 baseData["type"] = "disp-dimensional-bins"
 # Remove E_0, k_0 from the data and store them as means for the distributions.
-E_0Mean = baseData.pop("E_0", None)
+E_0Mean = baseData.pop("eq_pot", None)
 E_0SD = 1e-1
-k_0Mean = baseData.pop("k_0", None)
+k_0Mean = baseData.pop("eq_rate", None)
 k_0SD = 3
 freq = baseData["freq"]
 
-endTime = (baseData["ERev"] - baseData["EStart"]) / baseData["nu"]
+endTime = (baseData["pot_rev"] - baseData["pot_start"]) / baseData["nu"]
 numPts = int(np.ceil(PTS_PER_WAVE * baseData["freq"] * 2 * endTime))
 trim = int(np.floor(numPts / 100))
 
@@ -81,11 +81,13 @@ if os.path.exists(simFileName):
 	t, IHR = io.readTimeCurrentDataBinary(simFileName)
 else:
 	t = np.linspace(0, endTime, numPts)
+         time_step = t[1] - t[0]
+         num_time_pts = len(t)
 	setupForHermGauss(benchmarkNumEvals)
-	IHR, _ = st.solveIFromJSON(t, baseData)
+	IHR, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 	del _
 	io.writeTimeCurrentDataBinary(simFileName, t, IHR)
-harmHR = st.extractHarmonic(10, freq*endTime, IHR)
+harmHR = st.extract_harmonic(10, freq*endTime, IHR)
 harmNorm = l2Norm(harmHR[trim:-trim])
 print "Benchmark data loaded"
 print "L2 norm of the 10th harmonic was {0}".format(harmNorm)
@@ -103,9 +105,9 @@ for name in names:
 			_, I = io.readTimeCurrentDataBinary(simFileName)
 		else:
 			setupFunctions[name](numSamples)
-			I, _ = st.solveIFromJSON(t, baseData)
+			I, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 			io.writeTimeCurrentDataBinary(simFileName, t, I)
-		harm = st.extractHarmonic(10, freq*endTime, I)
+		harm = st.extract_harmonic(10, freq*endTime, I)
 		harmErr.append(l2Norm(harmHR[trim:-trim] - harm[trim:-trim]) / harmNorm)
 		print "Data for {0} samples loaded".format(numSamples)
 		print "\tError was {0}.".format(harmErr[-1])

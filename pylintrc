@@ -3,6 +3,8 @@
 # Specify a configuration file.
 #rcfile=
 
+extension-pkg-whitelist=numpy
+
 # Python code to execute, usually for sys.path manipulation such as
 # pygtk.require().
 init-hook='import sys, os; sys.path.append(os.getcwd())'
@@ -44,7 +46,7 @@ symbols=no
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-#disable=
+disable=star-args
 
 
 [REPORTS]
@@ -105,7 +107,7 @@ ignored-modules=
 
 # List of classes names for which member attributes should not be checked
 # (useful for classes with attributes dynamically set).
-ignored-classes=SQLObject
+ignored-classes=SQLObject, numpy
 
 # When zope mode is activated, add a predefined set of Zope acquired attributes
 # to generated-members.

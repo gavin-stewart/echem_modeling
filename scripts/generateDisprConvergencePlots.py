@@ -24,19 +24,20 @@ fileName = getTopLevel.makePathFromTop("files/simulationParameters.json")
 dataName = "Dispersion points plot"
 baseData = io.readParametersFromJSON(fileName, dataName)
 # Remove E_0, k_0 from the data and store them as means for the distributions.
-E_0Mean = baseData.pop("E_0", None)
+E_0Mean = baseData.pop("eq_pot", None)
 E_0SDs = [0.0, 1e-2, 2e-2, 3e-2, 4e-2, 5e-2, 6e-2, 7e-2, 8e-2, 9e-2, 1e-1]
-k_0Mean = baseData.pop("k_0", None)
+k_0Mean = baseData.pop("eq_rate", None)
 # Choose the shape parameter for the log-normal distribution underlying k_0 to
 # give a desired coefficient of variation.
 k_0CVs = np.array([0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0])
 k_0SDs = np.sqrt(np.log(1 + np.square(k_0CVs)))
 freq = baseData["freq"]
 
-endTime = (baseData["ERev"] - baseData["EStart"]) / baseData["nu"]
-numPts = int(np.ceil(PTS_PER_WAVE * baseData["freq"] * 2 * endTime))
-trim = int(np.floor(numPts / 100))
-t = np.linspace(0, endTime, numPts)
+endTime = (baseData["pot_rev"] - baseData["pot_start"]) / baseData["nu"]
+num_time_pts = int(np.ceil(PTS_PER_WAVE * baseData["freq"] * 2 * endTime))
+time_step = endTime / num_time_pts
+trim = int(np.floor(num_time_pts / 100))
+t = np.linspace(0, endTime, num_time_pts)
 
 E_0BinFunFactory = lambda E_0SD: lambda n: gt.hermgaussParam(n, E_0Mean,
                                                            E_0SD, False)
@@ -55,11 +56,11 @@ k_0MinReqdPts = {}
 def l2Norm(a):
 	return np.sum(np.square(a))
 
-def getData(E_0SD, k_0SD, numPtsE_0, numPtsk_0):
+def getData(E_0SD, k_0SD, num_time_ptsE_0, num_time_ptsk_0):
     E_0BinFun = E_0BinFunFactory(E_0SD)
     k_0BinFun = k_0BinFunFactory(k_0SD)
-    baseData["bins"] = gt.productGrid(E_0BinFun, numPtsE_0, k_0BinFun, numPtsk_0)
-    I, _ = st.solveIFromJSON(t, baseData)
+    baseData["bins"] = gt.productGrid(E_0BinFun, num_time_ptsE_0, k_0BinFun, num_time_ptsk_0)
+    I, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
     return I
 
 def computeBenchmarkAndHarmonics(E_0SD, k_0SD):
@@ -68,13 +69,13 @@ def computeBenchmarkAndHarmonics(E_0SD, k_0SD):
     benchmark = getData(E_0SD, k_0SD, baseLineNumPts, baseLineNumPts)
     benchmarkHarmonics = []
     for h in range(1, MAX_HARM+1):
-        benchmarkHarmonics.append(st.extractHarmonic(h, freq * endTime, benchmark))
+        benchmarkHarmonics.append(st.extract_harmonic(h, freq * endTime, benchmark))
 
 def closeToBenchmark(Itest):
     if l2Norm(Itest - benchmark) >= ERRRELSQR * l2Norm(benchmark):
         return False
     for h in range(1, MAX_HARM+1):
-        harm = st.extractHarmonic(h, freq * endTime, Itest)
+        harm = st.extract_harmonic(h, freq * endTime, Itest)
         if l2Norm(harm - benchmarkHarmonics[h-1]) >= \
            ERRRELSQR * l2Norm(benchmarkHarmonics[h-1]):
             return False
@@ -125,7 +126,7 @@ for E_0SD in E_0SDs:
                        return best
                 if nue - nle >= nuk - nlk:
                     nre = (nue + nle) / 2
-                    # Run a binary search on numPtsE_0 = nre
+                    # Run a binary search on num_time_ptsE_0 = nre
                     nukBin = nuk
                     nlkBin = nlk
                     while nukBin - nlkBin > 1:
@@ -148,7 +149,7 @@ for E_0SD in E_0SDs:
                     best = bisect2d(nre + 1, nue, nlk, nukBin, best)
                 else:
                     nrk = (nlk + nuk)/2
-                    # Run a binary search on numPtsk_0 = nrk
+                    # Run a binary search on num_time_ptsk_0 = nrk
                     nueBin = nue
                     nleBin = nle
                     nreBin = nleBin
@@ -189,16 +190,16 @@ for E_0SD in E_0SDs:
 # Now, do the plotting.
 
 figureE0Only = plt.figure(1)
-numPtsE0Only = [data[(E_0SD, 0.0)][0] for E_0SD in E_0SDs]
-plt.plot(E_0SDs, numPtsE0Only)
+num_time_ptsE0Only = [data[(E_0SD, 0.0)][0] for E_0SD in E_0SDs]
+plt.plot(E_0SDs, num_time_ptsE0Only)
 plt.xlabel('E_0 dispersion (V)')
 plt.ylabel('Number of points')
 title = 'Points required to achieve an error of < 1% with only E_0 dispersion'
 plt.title(title)
 
 figurek0Only = plt.figure(2)
-numPtsk0Only = [data[(0.0, k_0SD)][0] for k_0SD in k_0SDs]
-plt.plot(k_0CVs, numPtsk0Only)
+num_time_ptsk0Only = [data[(0.0, k_0SD)][0] for k_0SD in k_0SDs]
+plt.plot(k_0CVs, num_time_ptsk0Only)
 plt.xlabel('k_0 dispersion (CV)')
 plt.ylabel('Number of points')
 title = 'Points required to achieve an error of < 1% with only k_0 dispersion'

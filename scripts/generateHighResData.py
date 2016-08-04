@@ -30,15 +30,16 @@ k_0 = 4000 #Rescaled from Martin's paper
 
 tRev = (ERev - EStart) / nu		
 tEnd = 2*tRev
-n = 1e7
+num_time_pts = 1e7
 
-t = np.linspace(0, tEnd, n)
+t = np.linspace(0, tEnd, num_time_pts)
+time_step = t[1] - t[0]
 
 fileName = "/users/gavart/Private/python/electrochemistry/files/highresSimData.npz"
 
 print "Beginning to generate the data. . ."
 
-I = solutionTools.solveIDimensional(t, E_0, dE, freq, k_0, Ru, Cdl,Cdl1, Cdl2,
+I = solutionTools.solve_reaction_dimensional(time_step, num_time_pts, E_0, dE, freq, k_0, Ru, Cdl,Cdl1, Cdl2,
 Cdl3, EStart, ERev, temp, nu, area, coverage, True)[0]
 
 print "Done"

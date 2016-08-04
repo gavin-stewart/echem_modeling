@@ -19,24 +19,25 @@ dataName = "Martin's experiment"
 baseData = io.readParametersFromJSON(fileName, dataName)
 baseData["type"] = "disp-dimensional-bins"
 # Remove E_0, k_0 from the data and store them as means for the distributions.
-E_0Mean = baseData.pop("E_0", None)
+E_0Mean = baseData.pop("eq_pot", None)
 E_0SD = 5e-3
-k_0Mean = baseData.pop("k_0", None)
+k_0Mean = baseData.pop("eq_rate", None)
 k_0SD = 2
 freq = baseData["freq"]
 
-endTime = (baseData["ERev"] - baseData["EStart"]) / baseData["nu"]
-numPts = int(np.ceil(PTS_PER_WAVE * baseData["freq"] * 2 * endTime))
-trim = int(np.floor(numPts / 100))
+endTime = (baseData["pot_rev"] - baseData["pot_start"]) / baseData["nu"]
+num_time_pts = int(np.ceil(PTS_PER_WAVE * baseData["freq"] * 2 * endTime))
+time_step = endTime / (num_time_pts - 1)
+trim = int(np.floor(num_time_pts / 100))
 
 ptSeq = [1,3,5,9,17,33]
 
 
-def setupForHermGaussProduct(numPts):
+def setupForHermGaussProduct(num_time_pts):
 	E_0Bins = lambda n: gt.hermgaussParam(n, E_0Mean, E_0SD, False)
 	k_0Bins = lambda n: gt.hermgaussParam(n, k_0Mean, k_0SD, True)
 	
-	baseData["bins"] =  gt.productGrid(E_0Bins, numPts, k_0Bins, numPts)
+	baseData["bins"] =  gt.productGrid(E_0Bins, num_time_pts, k_0Bins, num_time_pts)
 
 def setupForHermGaussSparse(level):
 	ERule = lambda n: gt.hermgaussParam(n, E_0Mean, E_0SD, False)
@@ -60,19 +61,19 @@ simFileName = genFileName("benchmark")
 if os.path.exists(simFileName):
 	t, IHR = io.readTimeCurrentDataBinary(simFileName)
 else:
-	t = np.linspace(0, endTime, numPts)
+	t = np.linspace(0, endTime, num_time_pts)
 	setupForHermGauss(benchmarkNumEvals)
-	IHR, _ = st.solveIFromJSON(t, baseData)
+	IHR, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 	del _
 	io.writeTimeCurrentDataBinary(simFileName, t, IHR)
-harmHR = st.extractHarmonic(10, freq*endTime, IHR)
+harmHR = st.extract_harmonic(10, freq*endTime, IHR)
 harmNorm = l2Norm(harmHR[trim:-trim])
 print "Benchmark data loaded"
 print "Beginning processing for product grid"
 err = []
 harmErr = []
 
-t = np.linspace(0, endTime, numPts)
+t = np.linspace(0, endTime, num_time_pts)
 for numSamples in numEvaluations:
 	# First, do product grids
 	simFileName = genFileName("HermGauss"+str(numSamples)+"pts")
@@ -80,9 +81,9 @@ for numSamples in numEvaluations:
 		_, I = io.readTimeCurrentDataBinary(simFileName)
 	else:
 		setupForHermGaussProduct(numSamples)
-		I, _ = st.solveIFromJSON(t, baseData)
+		I, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 		io.writeTimeCurrentDataBinary(simFileName, t, I)
-	harm = st.extractHarmonic(10, freq*endTime, I)
+	harm = st.extract_harmonic(10, freq*endTime, I)
 	harmErr.append(l2Norm(harmHR[trim:-trim] - harm[trim:-trim]) / harmNorm)
 	del I
 	del _
@@ -92,22 +93,22 @@ for numSamples in numEvaluations:
 plt.title("Convergence in the 10th harmonic")
 plt.loglog(numEvaluations, harmErr)
 
-numPts = []
+num_time_pts = []
 harmErr = []
 print "Beginning processing for sparse grid"
 for level in range(1, len(ptSeq)):
-	numPts.append(np.sum(np.array(ptSeq[:level]) * np.array(gt.reverse(ptSeq[:level]))) + np.sum(np.array(ptSeq[:level-1]) * np.array(gt.reverse(ptSeq[:level-1]))))
+	num_time_pts.append(np.sum(np.array(ptSeq[:level]) * np.array(gt.reverse(ptSeq[:level]))) + np.sum(np.array(ptSeq[:level-1]) * np.array(gt.reverse(ptSeq[:level-1]))))
 	simFileName = genFileName("HermGaussSparse"+str(level)+"level")
 	if os.path.exists(simFileName):
 		_,I = io.readTimeCurrentDataBinary(simFileName)
 	else:
 		setupForHermGaussSparse(level)
-		I, _ = st.solveIFromJSON(t, baseData)
+		I, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 		io.writeTimeCurrentDataBinary(simFileName, t, I)
-	harm = st.extractHarmonic(10, freq*endTime, I)
+	harm = st.extract_harmonic(10, freq*endTime, I)
 	harmErr.append(l2Norm(harmHR[trim:-trim] - harm[trim:-trim]) / harmNorm)
 	print "Data for level {0} loaded.".format(level)
-plt.loglog(numPts, harmErr)
+plt.loglog(num_time_pts, harmErr)
 plt.savefig("./files/convPlots/sparseVsProduct.pdf")
 plt.show()
 

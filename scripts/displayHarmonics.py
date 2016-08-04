@@ -12,12 +12,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def plotHarmonic(n, freq, I, pot, trim, color):
-	harmonic = solutionTools.extractHarmonic(n, freq, I)
+	harmonic = solutionTools.extract_harmonic(n, freq, I)
 	plt.fill_between(pot[trim:-trim], harmonic[trim:-trim], color=color)
 
 # Code to reproduce Fig 6 of Morris et al 2015
-n = 9.1e5
+num_time_pts = 9.1e5
 t=np.linspace(0,7,n)
+time_step = t[1] - t[0]
 E_0 = 0
 dE = 80e-3
 freq = 72
@@ -41,7 +42,7 @@ colors = ["blue", "red", "black", "green"]
 plotTrim = 1e4  # High-frequency components on the ends make the plot ugly
 I = []
 for k_0,i in zip(k_0Vals, range(len(k_0Vals))):
-	Itmp, amt = solutionTools.solveIDimensional(t, E_0, dE, freq, k_0, 
+	Itmp, amt = solutionTools.solve_reaction_dimensional(time_step, num_time_pts, E_0, dE, freq, k_0, 
 	Ru, Cdl, Cdl1, Cdl2, Cdl3, EStart, ERev, temp, nu, area, 
 	coverage, False)
 	I.append(Itmp)
