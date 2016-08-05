@@ -21,7 +21,7 @@ persistent=yes
 
 # List of plugins (as comma separated values of python modules names) to load,
 # usually to register additional checkers.
-#load-plugins=
+load-plugins=
 
 # DEPRECATED
 include-ids=no
@@ -46,7 +46,7 @@ symbols=no
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=star-args
+disable=star-args,deprecated-lambda,bad-builtin
 
 
 [REPORTS]

@@ -6,8 +6,8 @@
 import getTopLevel
 import pickle
 import tools.io as io
-import tools.solutionTools as st
-import tools.gridTools as gt
+import tools.solution_tools as st
+import tools.grid as gt
 import numpy as np
 import os.path
 from scipy.stats.distributions import norm
@@ -39,9 +39,9 @@ time_step = endTime / num_time_pts
 trim = int(np.floor(num_time_pts / 100))
 t = np.linspace(0, endTime, num_time_pts)
 
-E_0BinFunFactory = lambda E_0SD: lambda n: gt.hermgaussParam(n, E_0Mean,
+E_0BinFunFactory = lambda E_0SD: lambda n: gt.hermgauss_param(n, E_0Mean,
                                                            E_0SD, False)
-k_0BinFunFactory = lambda k_0SD: lambda n: gt.hermgaussParam(n, k_0Mean,
+k_0BinFunFactory = lambda k_0SD: lambda n: gt.hermgauss_param(n, k_0Mean,
                                                             k_0SD, True)
 
 baseLineNumPts = 50
@@ -59,7 +59,7 @@ def l2Norm(a):
 def getData(E_0SD, k_0SD, num_time_ptsE_0, num_time_ptsk_0):
     E_0BinFun = E_0BinFunFactory(E_0SD)
     k_0BinFun = k_0BinFunFactory(k_0SD)
-    baseData["bins"] = gt.productGrid(E_0BinFun, num_time_ptsE_0, k_0BinFun, num_time_ptsk_0)
+    baseData["bins"] = gt.product_grid(E_0BinFun, num_time_ptsE_0, k_0BinFun, num_time_ptsk_0)
     I, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
     return I
 

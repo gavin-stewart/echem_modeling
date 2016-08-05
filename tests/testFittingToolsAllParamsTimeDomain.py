@@ -1,5 +1,5 @@
 import tools.fittingTools as ft
-import tools.solutionTools as st
+import tools.solution_tools as st
 import tools.fileio as io
 import numpy as np
 import unittest

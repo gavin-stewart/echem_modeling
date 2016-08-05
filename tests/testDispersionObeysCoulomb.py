@@ -1,16 +1,16 @@
 
-import tools.solutionTools as st
-import tools.gridTools as gt
+import tools.solution_tools as st
+import tools.grid as gt
 import tools.fileio as io
 import numpy as np
 from scipy.stats.distributions import norm
 import unittest
 
 def k0QuadFunFactory(kSD):
-	return lambda n: gt.hermgaussParam(n, 4e3, kSD, True)
+	return lambda n: gt.hermgauss_param(n, 4e3, kSD, True)
 
 def E0QuadFunFactory(ESD):
-	return lambda n: gt.hermgaussParam(n, -0.41, ESD, False)
+	return lambda n: gt.hermgauss_param(n, -0.41, ESD, False)
 
 class DispersionCoulombTests(unittest.TestCase):
 	""" 
@@ -51,7 +51,7 @@ class DispersionCoulombTests(unittest.TestCase):
 		
 		for ESD in self.ESDVals:
 			for kSD in self.kSDVals:
-				self.baseData["bins"] = gt.productGrid(E0QuadFunFactory(ESD), self.numSampPts, k0QuadFunFactory(kSD), self.numSampPts)
+				self.baseData["bins"] = gt.product_grid(E0QuadFunFactory(ESD), self.numSampPts, k0QuadFunFactory(kSD), self.numSampPts)
 				I, amt = st.solve_reaction_from_json(self.time_step, self.num_time_pts, self.baseData)
 				self.assertAlmostEqual(endAmt, amt[-1])
 				IInt = np.sum(I) / self.num_time_pts

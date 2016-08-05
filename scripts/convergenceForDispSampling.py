@@ -5,8 +5,8 @@
 import getTopLevel
 
 import tools.fileio as io
-import tools.solutionTools as st
-import tools.gridTools as gt
+import tools.solution_tools as st
+import tools.grid as gt
 import numpy as np
 import os.path
 from scipy.stats.distributions import norm
@@ -34,34 +34,34 @@ trim = int(np.floor(numPts / 100))
 
 
 def setupForEqSpParam(numPts):
-	E_0Bins = lambda n: gt.unifSpacedParam(n, E_0Mean - 5 * E_0SD, E_0Mean + 5 * E_0SD,E_0Mean, E_0SD, False)
-	k_0Bins = lambda n: gt.unifSpacedParam(n, -10, 10, k_0Mean, k_0SD, True)
+	E_0Bins = lambda n: gt.unif_spaced_param(n, E_0Mean - 5 * E_0SD, E_0Mean + 5 * E_0SD,E_0Mean, E_0SD, False)
+	k_0Bins = lambda n: gt.unif_spaced_param(n, -10, 10, k_0Mean, k_0SD, True)
 	
-	baseData["bins"] =  gt.productGrid(E_0Bins, numPts, k_0Bins, numPts)
+	baseData["bins"] =  gt.product_grid(E_0Bins, numPts, k_0Bins, numPts)
 
 def setupForEqSpProb(numPts):
-	E_0Bins = lambda n: gt.unifSpacedProb(n, E_0Mean, E_0SD, False)
-	k_0Bins = lambda n: gt.unifSpacedProb(n, k_0Mean, k_0SD, True)
+	E_0Bins = lambda n: gt.unif_spaced_prob(n, E_0Mean, E_0SD, False)
+	k_0Bins = lambda n: gt.unif_spaced_prob(n, k_0Mean, k_0SD, True)
 	
-	baseData["bins"] =  gt.productGrid(E_0Bins, numPts, k_0Bins, numPts)
+	baseData["bins"] =  gt.product_grid(E_0Bins, numPts, k_0Bins, numPts)
 
 def setupForLegGaussParam(numPts):
-	E_0Bins = lambda n: gt.leggaussParam(n, E_0Mean -5 * E_0SD, E_0Mean + 5 * E_0SD, E_0Mean, E_0SD, False)
-	k_0Bins = lambda n: gt.leggaussParam(n,-10, 10, k_0Mean, k_0SD, True)
+	E_0Bins = lambda n: gt.leggauss_param(n, E_0Mean -5 * E_0SD, E_0Mean + 5 * E_0SD, E_0Mean, E_0SD, False)
+	k_0Bins = lambda n: gt.leggauss_param(n,-10, 10, k_0Mean, k_0SD, True)
 	
-	baseData["bins"] =  gt.productGrid(E_0Bins, numPts, k_0Bins, numPts)
+	baseData["bins"] =  gt.product_grid(E_0Bins, numPts, k_0Bins, numPts)
 
 def setupForLegGaussProb(numPts):
-	E_0Bins = lambda n: gt.leggaussProb(n, E_0Mean, E_0SD, False)
-	k_0Bins = lambda n: gt.leggaussProb(n, k_0Mean, k_0SD, True)
+	E_0Bins = lambda n: gt.leggauss_prob(n, E_0Mean, E_0SD, False)
+	k_0Bins = lambda n: gt.leggauss_prob(n, k_0Mean, k_0SD, True)
 	
-	baseData["bins"] =  gt.productGrid(E_0Bins, numPts, k_0Bins, numPts)
+	baseData["bins"] =  gt.product_grid(E_0Bins, numPts, k_0Bins, numPts)
 
 def setupForHermGauss(numPts):
-	E_0Bins = lambda n: gt.hermgaussParam(n, E_0Mean, E_0SD, False)
-	k_0Bins = lambda n: gt.hermgaussParam(n, k_0Mean, k_0SD, True)
+	E_0Bins = lambda n: gt.hermgauss_param(n, E_0Mean, E_0SD, False)
+	k_0Bins = lambda n: gt.hermgauss_param(n, k_0Mean, k_0SD, True)
 	
-	baseData["bins"] =  gt.productGrid(E_0Bins, numPts, k_0Bins, numPts)
+	baseData["bins"] =  gt.product_grid(E_0Bins, numPts, k_0Bins, numPts)
 
 def l2Norm(a):
 	return np.sum(np.square(a))

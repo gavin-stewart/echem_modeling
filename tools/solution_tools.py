@@ -5,7 +5,6 @@ import numpy as np
 import tools.conversion as conv
 import scipy.signal
 import scipy.stats.distributions
-import numpy.polynomial.legendre
 import scipy.interpolate
 from scipy.weave import inline
 import copy
@@ -297,21 +296,22 @@ def extract_harmonic(harmonic_number, freq, data):
                                           harmonic_number*freq, len(fourier))
     return np.fft.irfft(fourier * window)
 
-def solve_reaction_disp_dim_MC(
+def solve_reaction_disp_dim_mc(
         time_step, num_time_pts, num_runs, ac_amplitude, freq, resistance,
         cdl, cdl1, cdl2, cdl3, pot_start, pot_rev, temp, nu, area, coverage,
-        eq_pot_mean, E_0SD, eq_rate_mean, k_0SD, **kwargs):
+        eq_pot_mean, eq_pot_stdev, eq_rate_mean, eq_rate_stdev, **kwargs):
     """Solves the reaction with dispersion using Monte-Carlo sampling."""
     _test_deprecated_keys(kwargs)
-    if E_0SD == 0:
+    if eq_pot_stdev == 0:
         eq_pot_vals = np.repeat(eq_pot_mean, num_runs)
     else:
-        eq_pot_vals = np.random.normal(eq_pot_mean, E_0SD, num_runs)
-    if k_0SD == 0:
+        eq_pot_vals = np.random.normal(eq_pot_mean, eq_pot_stdev, num_runs)
+    if eq_rate_stdev == 0:
         eq_rate_vals = np.repeat(eq_rate_mean, num_runs)
     else:
-        eq_rate_vals = eq_rate_mean * np.power(2, np.random.normal(0, k_0SD,
-                                                                   num_runs))
+        eq_rate_vals = eq_rate_mean\
+                     * np.power(2,
+                                np.random.normal(0, eq_rate_stdev, num_runs))
 
     def solve_reaction_inner(eq_pot, eq_rate):
         """Wrapper around solve_reaction_dimensional."""
@@ -325,7 +325,7 @@ def solve_reaction_disp_dim_MC(
     current_agg, amt_agg = reduce(lambda a, b: (a[0]+b[0], a[1]+b[1]),
                                   solution_list)
     return current_agg / num_runs, amt_agg / num_runs
-SOLVER_FUNCTIONS["disp-dimensional-MC"] = solve_reaction_disp_dim_MC
+SOLVER_FUNCTIONS["disp-dimensional-MC"] = solve_reaction_disp_dim_mc
 
 def extract_peaks(x_vals, y_vals, passes=3):
     """Returns a tuple containing a list of x values and yvalues where the
@@ -333,92 +333,83 @@ def extract_peaks(x_vals, y_vals, passes=3):
     """
     if len(x_vals) != len(y_vals):
         raise ValueError('Expected x and y to have equal lengths')
-
-    n = len(x_vals)
-
     #Sort the x values.
     zipped = zip(x_vals, y_vals)
     zipped.sort(key=lambda z: z[0]) #Sort by x value.
-    x_vals, y_vals = zip(*zipped)
+    x_vals, y_vals = map(list, zip(*zipped))
+    # Dummy values to allow the endpoints to be peaks
+    x_vals.insert(0, -np.inf)
+    y_vals.insert(0, -np.inf)
+    x_vals.append(np.inf)
+    y_vals.append(-np.inf)
 
-    x_peaks = []
-    y_peaks = []
-    if y_vals[0] > y_vals[1]:
-        x_peaks.append(x_vals[0])
-        y_peaks.append(y_vals[0])
+    x_peaks, y_peaks = map(list, zip(*[
+        (x, y) for x, y, y_prev, y_next
+        in zip(x_vals[1:-1], y_vals[1:-1], y_vals[:-2], y_vals[2:])
+        if y > y_prev and y > y_next
+        ]))
 
-    for y_prev, x_curr, y_curr,\
-          y_next in zip(y_vals[:-2], x_vals[1:-1], y_vals[1:-1], y_vals[2:]):
-        if y_curr >= y_prev and y_curr >= y_next:
-            x_peaks.append(x_curr)
-            y_peaks.append(y_curr)
-
-    if y_vals[-1] > y_vals[-2]:
-        x_peaks.append(x_vals[-1])
-        y_peaks.append(y_vals[-1])
-
+    # Go through the list a few times (3, by default), and remove everything
+    # that doesn't look like a peak.
+    if passes > len(x_peaks):
+        passes = len(x_peaks) - 1
     for _ in xrange(1, passes):
-        toRemove = []
-        for n in range(1, len(y_peaks) - 2):
-            if y_peaks[n] < y_peaks[n - 1] and y_peaks[n] < y_peaks[n + 1]:
-                #Probably a false peak.
-                toRemove.append(n)
-        for n in reversed(toRemove):
-            del x_peaks[n]
-            del y_peaks[n]
+        x_peaks, y_peaks = map(list, zip(*[
+            (x, y) for x, y, y_prev, y_next
+            in zip(x_peaks[1:-1], y_peaks[1:-1], y_peaks[:-2], y_peaks[2:])
+            if y >= y_prev or y >= y_next
+            ]))
+    return x_peaks, y_peaks
 
-        return x_peaks, y_peaks
-
-def interpolatedTotalEnvelope(x, y):
+def interpolated_total_envelope(x_vals, y_vals):
     """Returns an estimate of the envelope of the signal (x,y) by
     interpolating the maxima of (x,abs(y))
     """
-    xPeak, yPeak = extract_peaks(x, abs(y))
-    if x[0] not in xPeak:
-        xPeak.append(x[0])
-        yPeak.append(abs(y[0]))
-    if x[-1] not in xPeak:
-        xPeak.append(x[-1])
-        yPeak.append(abs(y[-1]))
-        xPeak, yPeak = zip(*sorted(zip(xPeak, yPeak), key=lambda n: n[0]))
-    return scipy.interpolate.interp1d(np.array(xPeak),
-                                      np.array(yPeak),
-                                      kind='linear')(x)
+    x_vals, y_vals = zip(*sorted(zip(x_vals, y_vals), key=lambda n: n[0]))
+    x_peaks, y_peaks = extract_peaks(x_vals, abs(y_vals))
+    if x_vals[0] != x_peaks[0]:
+        x_peaks.insert(0, x_vals[0])
+        y_peaks.insert(0, abs(y_vals[0]))
+    if x_vals[-1] != x_peaks[-1]:
+        x_peaks.append(x_vals[-1])
+        y_peaks.append(abs(y_vals[-1]))
+    return scipy.interpolate.interp1d(np.array(x_peaks), np.array(y_peaks),
+                                      kind='linear')(x_vals)
 
-def interpolatedUpperEnvelope(x, y):
-    """Returns an estimate of the envelope of the signal (x,hy) by
+def interpolated_upper_envelope(x_vals, y_vals):
+    """Returns an estimate of the envelope of the signal (x,y) by
     interpolating the maxima of (x, y)
     """
-    xPeak, yPeak = extract_peaks(x, y)
-    if x[0] not in xPeak:
-        xPeak.append(x[0])
-        yPeak.append(abs(y[0]))
-    if x[-1] not in xPeak:
-        xPeak.append(x[-1])
-        yPeak.append(abs(y[-1]))
-    xPeak, yPeak = zip(*sorted(zip(xPeak, yPeak), key=lambda n: n[0]))
-    return scipy.interpolate.interp1d(np.array(xPeak),
-                                      np.array(yPeak),
-                                      kind='linear')(x)
+    x_vals, y_vals = zip(*sorted(zip(x_vals, y_vals), key=lambda n: n[0]))
+    x_peaks, y_peaks = extract_peaks(x_vals, y_vals)
+    if x_vals[0] != x_peaks[0]:
+        x_peaks.insert(0, x_vals[0])
+        y_peaks.insert(0, abs(y_vals[0]))
+    if x_vals[-1] != x_peaks[-1]:
+        x_peaks.append(x_vals[-1])
+        y_peaks.append(abs(y_vals[-1]))
+    return scipy.interpolate.interp1d(np.array(x_peaks), np.array(y_peaks),
+                                      kind='linear')(x_vals)
 
-def interpolatedLowerEnvelope(x, y):
+def interpolated_lower_envelope(x_vals, y_vals):
     """Returns an estimate of the envelope of the signal (x,hy) by
     interpolating the maxima of (x, -y)
     """
-    xPeak, yPeak = extract_peaks(x, -y)
-    if x[0] not in xPeak:
-        xPeak.append(x[0])
-        yPeak.append(abs(y[0]))
-    if x[-1] not in xPeak:
-        xPeak.append(x[-1])
-        yPeak.append(abs(y[-1]))
+    x_vals, y_vals = map(list, zip(*sorted(zip(x_vals, y_vals),
+                                           key=lambda n: n[0])))
+    x_peaks, y_peaks = extract_peaks(x_vals, -y_vals)
+    if x_vals[0] != x_peaks[0]:
+        x_peaks.insert(0, x_vals[0])
+        y_peaks.insert(0, abs(y_vals[0]))
+    if x_vals[-1] not in x_peaks[-1]:
+        x_peaks.append(x_vals[-1])
+        y_peaks.append(abs(y_vals[-1]))
     #Sort by x value
-    xPeak, yPeak = zip(*sorted(zip(xPeak, yPeak), key=lambda n: n[0]))
-    return -1 * scipy.interpolate.interp1d(np.array(xPeak),
-                                           np.array(yPeak),
-                                           kind='linear')(x)
+    return -1 * scipy.interpolate.interp1d(np.array(x_peaks),
+                                           np.array(y_peaks),
+                                           kind='linear')(x_vals)
 
-def getSolverNames():
+def solver_names():
     """Return the names of the solver functions contained in this module."""
     return SOLVER_FUNCTIONS.keys()
 

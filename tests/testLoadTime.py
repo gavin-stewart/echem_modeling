@@ -5,7 +5,7 @@ current traces with random parameters.
 NUM_TRACE = 50
 import time
 import os.path, os, shutil
-import tools.solutionTools as st
+import tools.solution_tools as st
 import tools.fileio as io
 
 loadPath = './tests/files/temp/'

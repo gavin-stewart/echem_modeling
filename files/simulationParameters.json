@@ -25,9 +25,9 @@
 
 {"resistance": 0.0, "eq_rate_mean": 0.1, "reverse": false, "pot_rev": 0.5, 
 "name": "morris-E0-disp-MC", "temp": 293, "pot_start": -0.2, "cdl": 0.0, 
-"eq_pot_mean": 0, "ac_amplitude": 0.0, "area": 1.0, "E_0SD": 0.05, "num_runs": 1000, 
+"eq_pot_mean": 0, "ac_amplitude": 0.0, "area": 1.0, "eq_pot_stdev": 0.05, "num_runs": 9000, 
 "cdl1": 0.0, "cdl3": 0.0, "cdl2": 0.0, "coverage": 1e-11, "freq": 0.0, 
-"type": "disp-dimensional-MC", "nu": 0.1, "k_0SD": 0},
+"type": "disp-dimensional-MC", "nu": 0.1, "eq_rate_stdev": 0},
 
 {"name" : "Dispersion points plot", "type" : "disp-dimensional-bins", 
 "pot_start" : -0.5, "pot_rev" : 0.5, "eq_pot" : 0, "ac_amplitude" : 150e-3, "freq" : 9.0, 

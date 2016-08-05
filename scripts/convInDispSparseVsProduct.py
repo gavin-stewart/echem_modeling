@@ -3,7 +3,7 @@
 
 import ..tools.io as io
 import ..tools.solutionTools as st
-import ..tools.gridTools as gt
+import ..grid as gt
 import numpy as np
 import os.path
 from scipy.stats.distributions import norm
@@ -34,16 +34,16 @@ ptSeq = [1,3,5,9,17,33]
 
 
 def setupForHermGaussProduct(num_time_pts):
-	E_0Bins = lambda n: gt.hermgaussParam(n, E_0Mean, E_0SD, False)
-	k_0Bins = lambda n: gt.hermgaussParam(n, k_0Mean, k_0SD, True)
+	E_0Bins = lambda n: gt.hermgauss_param(n, E_0Mean, E_0SD, False)
+	k_0Bins = lambda n: gt.hermgauss_param(n, k_0Mean, k_0SD, True)
 	
-	baseData["bins"] =  gt.productGrid(E_0Bins, num_time_pts, k_0Bins, num_time_pts)
+	baseData["bins"] =  gt.product_grid(E_0Bins, num_time_pts, k_0Bins, num_time_pts)
 
 def setupForHermGaussSparse(level):
-	ERule = lambda n: gt.hermgaussParam(n, E_0Mean, E_0SD, False)
-	KRule = lambda n: gt.hermgaussParam(n, k_0Mean, k_0SD, True)
+	ERule = lambda n: gt.hermgauss_param(n, E_0Mean, E_0SD, False)
+	KRule = lambda n: gt.hermgauss_param(n, k_0Mean, k_0SD, True)
 
-	baseData["bins"] = gt.sparseGrid(ERule, KRule, level, ptSeq, ptSeq)
+	baseData["bins"] = gt.sparse_grid(ERule, KRule, level, ptSeq, ptSeq)
 	print baseData["bins"]
 
 def l2Norm(a):

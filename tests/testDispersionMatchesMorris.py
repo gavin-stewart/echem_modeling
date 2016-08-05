@@ -1,5 +1,5 @@
-import tools.solutionTools as st
-import tools.gridTools as gt
+import tools.solution_tools as st
+import tools.grid as gt
 import tools.fileio as io
 import numpy as np
 from scipy.stats.distributions import norm

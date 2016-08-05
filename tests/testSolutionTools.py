@@ -1,8 +1,8 @@
 # Tests for the conversion and solutionTools
 
 import unittest
-import tools.solutionTools as st
-import tools.gridTools as gt
+import tools.solution_tools as st
+import tools.grid as gt
 import tools.fileio as io
 import tools.conversion as conv
 import numpy as np
@@ -178,7 +178,7 @@ class SolutionToolsTests(unittest.TestCase):
                   self.assertEqual(st.short_centered_kaiser_window(5, 9, 10)[0], 0)
 
          def testUnifSpaceParamBasic(self):
-                  pts, weights = gt.unifSpacedParam(15, -7.0, 7.0, 0, 1, False)
+                  pts, weights = gt.unif_spaced_param(15, -7.0, 7.0, 0, 1, False)
                   self.assertEqual(list(pts), list(np.linspace(-7,7,15)))
                   for pt, weight in zip(pts, weights):
                            if np.isclose(pt, -7):
@@ -189,7 +189,7 @@ class SolutionToolsTests(unittest.TestCase):
                                     self.assertTrue(np.isclose(weight, norm.cdf(pt+0.5) -norm.cdf(pt-0.5)))
 
          def testUnifSpaceParamsWithShiftAndStretch(self):
-                  pts, weights = gt.unifSpacedParam(15, -7.0, 7.0, 1, 2, False)
+                  pts, weights = gt.unif_spaced_param(15, -7.0, 7.0, 1, 2, False)
                   for pt, weight in zip(pts, weights):
                            if np.isclose(pt,-7.0):
                                     self.assertTrue(np.isclose(weight, norm.cdf(-6.5, loc=1, scale=2)))
@@ -200,7 +200,7 @@ class SolutionToolsTests(unittest.TestCase):
 
 
          def testUnifSpaceProbNorm(self):
-                  vals = gt.unifSpacedProb(15, 0, 1, False)
+                  vals = gt.unif_spaced_prob(15, 0, 1, False)
                   self.assertEqual(len(vals[0]), 15)
                   self.assertEqual(len(list(vals[1])), 15)
                   for k in vals[1]:
@@ -220,6 +220,6 @@ class SolutionToolsTests(unittest.TestCase):
                   t = np.linspace(0, np.pi, 1e5)
                   y = np.sin(t) * np.sin(500*t)
                   yEnvTrue = np.sin(t)
-                  yEnvExtracted = st.interpolatedTotalEnvelope(t, y)
+                  yEnvExtracted = st.interpolated_total_envelope(t, y)
                   self.assertEqual(len(yEnvExtracted), len(yEnvTrue))
                   self.assertTrue(np.sum(np.square(yEnvTrue - yEnvExtracted))/len(yEnvTrue) < 1e-4)

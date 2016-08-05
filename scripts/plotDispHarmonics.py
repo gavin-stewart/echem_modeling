@@ -7,8 +7,8 @@ import sys,getTopLevel
 
 import matplotlib.pyplot as plt
 import tools.fileio as io
-import tools.solutionTools as st
-import tools.gridTools as gt
+import tools.solution_tools as st
+import tools.grid as gt
 import scipy.signal
 import numpy as np
 import matplotlib.collections
@@ -31,8 +31,8 @@ kSDVals = [1,2,3]
 trim = slice(5000, -5000)
 
 
-E_0Bins = lambda n: gt.hermgaussParam(n, EMean, ESD, False)
-k_0Bins = lambda n: gt.hermgaussParam(n, kMean, kSD, True)
+E_0Bins = lambda n: gt.hermgauss_param(n, EMean, ESD, False)
+k_0Bins = lambda n: gt.hermgauss_param(n, kMean, kSD, True)
 
 IEnvLim = 0
 
@@ -50,8 +50,8 @@ plotsHarmboth = plotsboth.add_subplot(212)
 def plotCurrentAndHarmonics(I, label, currentAx, harmAx):
 	global IEnvLim
 	plotColor = next(colors)
-	IEnvUpper = st.interpolatedUpperEnvelope(t, I-ICap)
-	IEnvLower = st.interpolatedLowerEnvelope(t, I-ICap)
+	IEnvUpper = st.interpolated_upper_envelope(t, I-ICap)
+	IEnvLower = st.interpolated_lower_envelope(t, I-ICap)
 	IEnvMax = max(np.amax(abs(IEnvUpper)), np.amax(abs(IEnvLower)))
 	if IEnvMax > IEnvLim: 
 		IEnvLim = IEnvMax
@@ -77,7 +77,7 @@ tEnd = 2 * (baseData["pot_rev"] - baseData["pot_start"]) / baseData["nu"]
 num_time_pts = int(np.ceil(tEnd * baseData["freq"] * 200)
 time_step = tEnd / num_time_pts
 t = np.linspace(0, tEnd, num_time_pts) 
-baseData["bins"] = gt.productGrid(E_0Bins, 1, k_0Bins, 1)
+baseData["bins"] = gt.product_grid(E_0Bins, 1, k_0Bins, 1)
 INoDisp, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 #Generate a zero-capacitance model 
 baseData["eq_rate"] = 0
@@ -90,7 +90,7 @@ baseData["type"] = "disp-dimensional-bins"
 kSD = 0
 plotCurrentAndHarmonics(INoDisp, "No disp", plotsIE0, plotsHarmE0)
 for ESD in ESDVals:
-	baseData["bins"] = gt.productGrid(E_0Bins, numEvals, k_0Bins, 1)
+	baseData["bins"] = gt.product_grid(E_0Bins, numEvals, k_0Bins, 1)
 	I, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 	label = "E_0 disp " + str(ESD)
 	plotCurrentAndHarmonics(I, label, plotsIE0, plotsHarmE0) 
@@ -101,7 +101,7 @@ for ESD in ESDVals:
 ESD = 0
 plotCurrentAndHarmonics(INoDisp, "No disp", plotsIk0, plotsHarmk0)
 for kSD in kSDVals:
-	baseData["bins"] = gt.productGrid(E_0Bins, 1, k_0Bins, numEvals)
+	baseData["bins"] = gt.product_grid(E_0Bins, 1, k_0Bins, numEvals)
 	I, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 	label = "k_0 disp " + str(kSD)
 	plotCurrentAndHarmonics(I, label, plotsIk0, plotsHarmk0)
@@ -111,7 +111,7 @@ for kSD in kSDVals:
 # Dispersion in both E_0 and k_0.
 plotCurrentAndHarmonics(INoDisp, "No disp", plotsIboth, plotsHarmboth)
 for ESD, kSD in zip(ESDVals, kSDVals):
-	baseData["bins"] = gt.productGrid(E_0Bins, 1, k_0Bins, numEvals)
+	baseData["bins"] = gt.product_grid(E_0Bins, 1, k_0Bins, numEvals)
 	I, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 	label = "E_0 disp " + str(ESD) + " k_0 disp " + str(kSD)
 	plotCurrentAndHarmonics(I, label, plotsIboth, plotsHarmboth)
