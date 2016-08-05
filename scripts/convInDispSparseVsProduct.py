@@ -16,7 +16,7 @@ benchmarkNumEvals = 70
 
 fileName = "./files/simulationParameters.json"
 dataName = "Martin's experiment"
-baseData = io.readParametersFromJSON(fileName, dataName)
+baseData = io.read_json_params(fileName, dataName)
 baseData["type"] = "disp-dimensional-bins"
 # Remove E_0, k_0 from the data and store them as means for the distributions.
 E_0Mean = baseData.pop("eq_pot", None)
@@ -59,13 +59,13 @@ setupFunctions = {"HermGaussSparse" : setupForHermGaussSparse, "HermGauss" : set
 
 simFileName = genFileName("benchmark")
 if os.path.exists(simFileName):
-	t, IHR = io.readTimeCurrentDataBinary(simFileName)
+	t, IHR = io.read_time_current_data_bin(simFileName)
 else:
 	t = np.linspace(0, endTime, num_time_pts)
 	setupForHermGauss(benchmarkNumEvals)
 	IHR, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 	del _
-	io.writeTimeCurrentDataBinary(simFileName, t, IHR)
+	io.write_time_current_bin_cmp(simFileName, t, IHR)
 harmHR = st.extract_harmonic(10, freq*endTime, IHR)
 harmNorm = l2Norm(harmHR[trim:-trim])
 print "Benchmark data loaded"
@@ -78,11 +78,11 @@ for numSamples in numEvaluations:
 	# First, do product grids
 	simFileName = genFileName("HermGauss"+str(numSamples)+"pts")
 	if os.path.exists(simFileName):
-		_, I = io.readTimeCurrentDataBinary(simFileName)
+		_, I = io.read_time_current_data_bin(simFileName)
 	else:
 		setupForHermGaussProduct(numSamples)
 		I, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
-		io.writeTimeCurrentDataBinary(simFileName, t, I)
+		io.write_time_current_bin_cmp(simFileName, t, I)
 	harm = st.extract_harmonic(10, freq*endTime, I)
 	harmErr.append(l2Norm(harmHR[trim:-trim] - harm[trim:-trim]) / harmNorm)
 	del I
@@ -100,11 +100,11 @@ for level in range(1, len(ptSeq)):
 	num_time_pts.append(np.sum(np.array(ptSeq[:level]) * np.array(gt.reverse(ptSeq[:level]))) + np.sum(np.array(ptSeq[:level-1]) * np.array(gt.reverse(ptSeq[:level-1]))))
 	simFileName = genFileName("HermGaussSparse"+str(level)+"level")
 	if os.path.exists(simFileName):
-		_,I = io.readTimeCurrentDataBinary(simFileName)
+		_,I = io.read_time_current_data_bin(simFileName)
 	else:
 		setupForHermGaussSparse(level)
 		I, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
-		io.writeTimeCurrentDataBinary(simFileName, t, I)
+		io.write_time_current_bin_cmp(simFileName, t, I)
 	harm = st.extract_harmonic(10, freq*endTime, I)
 	harmErr.append(l2Norm(harmHR[trim:-trim] - harm[trim:-trim]) / harmNorm)
 	print "Data for level {0} loaded.".format(level)

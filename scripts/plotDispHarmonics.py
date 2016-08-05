@@ -6,7 +6,7 @@ import sys,getTopLevel
 # Plot and display the harmonics for the dispersion data.
 
 import matplotlib.pyplot as plt
-import tools.io as io
+import tools.fileio as io
 import tools.solutionTools as st
 import tools.gridTools as gt
 import scipy.signal
@@ -22,7 +22,7 @@ numEvals = 40
 
 fileName = getTopLevel.makeFilePath("/simulationParameters.json")
 
-baseData = io.readParametersFromJSON(fileName, "Martin's experiment")
+baseData = io.read_json_params(fileName, "Martin's experiment")
 freq = baseData["freq"]
 EMean = baseData["eq_pot"]
 kMean = baseData["eq_rate"]

@@ -1,6 +1,6 @@
 # Time how long it takes to solve the DE for one value of E_0, k_0.
 
-import tools.io as io
+import tools.fileio as io
 import tools.solutionTools as st
 import numpy as np
 import os.path
@@ -24,7 +24,7 @@ def timeit(func):
 
 fileName = "./files/simulationParameters.json"
 dataName = "Martin's experiment"
-baseData = io.readParametersFromJSON(fileName, dataName)
+baseData = io.read_json_params(fileName, dataName)
 
 endTime = (baseData["ERev"] - baseData["EStart"]) /baseData["nu"]
 num_time_pts = int(np.ceil(PTS_PER_WAVE * baseData["freq"] * 2 * endTime))

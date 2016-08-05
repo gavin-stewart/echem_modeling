@@ -4,7 +4,7 @@
 #Add top level package to python path
 import getTopLevel
 
-import tools.io as io
+import tools.fileio as io
 import tools.solutionTools as st
 import tools.gridTools as gt
 import numpy as np
@@ -19,7 +19,7 @@ benchmarkNumEvals = 80
 
 fileName = getTopLevel.makeTopLevelPath("files/simulationParameters.json")
 dataName = "Martin's experiment"
-baseData = io.readParametersFromJSON(fileName, dataName)
+baseData = io.read_json_params(fileName, dataName)
 baseData["type"] = "disp-dimensional-bins"
 # Remove E_0, k_0 from the data and store them as means for the distributions.
 E_0Mean = baseData.pop("eq_pot", None)
@@ -78,7 +78,7 @@ setupFunctions = {"EqSpParam" : setupForEqSpParam, "EqSpProb" : setupForEqSpProb
 simFileName = genFileName("benchmark")
 print simFileName
 if os.path.exists(simFileName):
-	t, IHR = io.readTimeCurrentDataBinary(simFileName)
+	t, IHR = io.read_time_current_data_bin(simFileName)
 else:
 	t = np.linspace(0, endTime, numPts)
          time_step = t[1] - t[0]
@@ -86,7 +86,7 @@ else:
 	setupForHermGauss(benchmarkNumEvals)
 	IHR, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 	del _
-	io.writeTimeCurrentDataBinary(simFileName, t, IHR)
+	io.write_time_current_bin_cmp(simFileName, t, IHR)
 harmHR = st.extract_harmonic(10, freq*endTime, IHR)
 harmNorm = l2Norm(harmHR[trim:-trim])
 print "Benchmark data loaded"
@@ -102,11 +102,11 @@ for name in names:
 		# First, do equally spaced points
 		simFileName = genFileName(name+str(numSamples)+"pts")
 		if os.path.exists(simFileName):
-			_, I = io.readTimeCurrentDataBinary(simFileName)
+			_, I = io.read_time_current_data_bin(simFileName)
 		else:
 			setupFunctions[name](numSamples)
 			I, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
-			io.writeTimeCurrentDataBinary(simFileName, t, I)
+			io.write_time_current_bin_cmp(simFileName, t, I)
 		harm = st.extract_harmonic(10, freq*endTime, I)
 		harmErr.append(l2Norm(harmHR[trim:-trim] - harm[trim:-trim]) / harmNorm)
 		print "Data for {0} samples loaded".format(numSamples)

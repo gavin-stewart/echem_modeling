@@ -1,6 +1,6 @@
 import tools.fittingTools as ft
 import tools.solutionTools as st
-import tools.io as io
+import tools.fileio as io
 import numpy as np
 import unittest
 import matplotlib.pyplot as plt
@@ -17,7 +17,7 @@ class FittingToolsAllParamsTimeDomainTestCase(unittest.TestCase):
         # Read in data
 	fileName = "./files/simulationParameters.json"
 	dataName = "Martin's experiment"
-	cls.params = io.readParametersFromJSON(fileName, dataName)
+	cls.params = io.read_json_params(fileName, dataName)
 	cls.tEnd = 2 * (cls.params["ERev"] - cls.params["EStart"]) / cls.params["nu"]
 	cls.t = np.linspace(0, cls.tEnd, int(np.ceil(cls.tEnd * cls.params["freq"] * 200)))
 	cls.time_step = t[1] - t[0]

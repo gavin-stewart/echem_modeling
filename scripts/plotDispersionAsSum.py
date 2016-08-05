@@ -6,14 +6,14 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 import tools.solutionTools as st
 import tools.gridTools as gt
-import tools.io as io
+import tools.fileio as io
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
 
 
 E_0SD = 0.05
 fileName = getTopLevel.makePathFromTop('files/simulationParameters.json')
-data = io.readParametersFromJSON(fileName, "Martin's experiment")
+data = io.read_json_params(fileName, "Martin's experiment")
 tEnd = 2 * (data["pot_rev"] - data["pot_start"]) / data["nu"]
 num_time_pts = int(np.ceil(200 * data["freq"] * tEnd))
 time_step = tEnd / (num_time_pts - 1)

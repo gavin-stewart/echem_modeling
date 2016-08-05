@@ -1,7 +1,7 @@
 
 import tools.solutionTools as st
 import tools.gridTools as gt
-import tools.io as io
+import tools.fileio as io
 import numpy as np
 from scipy.stats.distributions import norm
 import unittest
@@ -22,7 +22,7 @@ class DispersionCoulombTests(unittest.TestCase):
 	numSampPts = 15
 	
 	def setUp(self):
-		self.baseData = io.readParametersFromJSON('./files/simulationParameters.json', "disp Coulomb")
+		self.baseData = io.read_json_params('./files/simulationParameters.json', "disp Coulomb")
 		tEnd = (self.baseData["pot_rev"] - self.baseData["pot_start"]) / self.baseData["nu"]
 		self.num_time_pts = np.ceil(tEnd * 8.959 * 200)
 	

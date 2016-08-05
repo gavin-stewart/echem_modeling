@@ -7,7 +7,7 @@ import os, sys, os.path
 topLevel = os.path.realpath(os.path.join(os.path.realpath(__file__), os.pardir))
 
 
-import tools/io as io
+import tools.fileio as io
 import numpy as np
 import solutionTools
 
@@ -44,5 +44,5 @@ Cdl3, EStart, ERev, temp, nu, area, coverage, True)[0]
 
 print "Done"
 print "Write data to file. . ."
-io.writeTimeCurrentDataBinary(fileName, t, I, True)
+io.write_time_current_bin_cmp(fileName, t, I, True)
 print "Done"

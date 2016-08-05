@@ -1,6 +1,6 @@
 import tools.solutionTools as st
 import tools.gridTools as gt
-import tools.io as io
+import tools.fileio as io
 import numpy as np
 from scipy.stats.distributions import norm
 import unittest
@@ -18,7 +18,7 @@ class MatchesMorrisTestSet(unittest.TestCase):
 
         fileName = "./files/simulationParameters.json"
         dataName = "Morris no disp"
-        data = io.readDimensionalParametersFromJSON(fileName, dataName)
+        data = io.read_json_dimen_params(fileName, dataName)
         I, amt = st.solve_reaction_from_json(time_step, num_time_pts, data)
 
         self.assertTrue(np.amax(I) < 8e-7)
@@ -126,7 +126,7 @@ class MatchesMorrisTestSet(unittest.TestCase):
     def testMorrisE0DispWithMC(self):
         fileName = './files/simulationParameters.json'
         dataName = 'morris-E0-disp-MC'
-        data = io.readParametersFromJSON(fileName, dataName)
+        data = io.read_json_params(fileName, dataName)
         t = np.linspace(0,7,7e3) #1000 pts per second.
         time_step = 7 / (7e3 - 1)
         num_time_pts = int(7e3)

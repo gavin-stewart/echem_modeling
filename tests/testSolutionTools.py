@@ -3,7 +3,7 @@
 import unittest
 import tools.solutionTools as st
 import tools.gridTools as gt
-import tools.io as io
+import tools.fileio as io
 import tools.conversion as conv
 import numpy as np
 from scipy.stats import norm
@@ -15,14 +15,14 @@ from scipy.stats.distributions import norm
 class ConversionTests(unittest.TestCase):
          def testTimeConversion(self):
                   """Verify that the time conversion function works"""
-                  EStart = -1
-                  EEnd = 1
-                  t = np.linspace(0, 1, 100)
-                  nu = 2.
+                  pot_start = -1
+                  pot_end = 1
+                  time = np.linspace(0, 1, 100)
+                  ramp_rate = 2.
                   temp = 25.+273.15
-                  tau = conv.timeToNondimVoltage(temp, nu, EStart, EEnd, t)
-                  self.assertAlmostEqual(tau[0], conv.nondimPot(temp, EStart))
-                  self.assertAlmostEqual(tau[-1], conv.nondimPot(temp, EEnd))
+                  tau = conv.nondim_time(temp, ramp_rate, pot_start, time)
+                  self.assertAlmostEqual(tau[0], conv.nondim_pot(temp, pot_start))
+                  self.assertAlmostEqual(tau[-1], conv.nondim_pot(temp, pot_end))
 
 class SolutionToolsTests(unittest.TestCase):
 
@@ -35,11 +35,11 @@ class SolutionToolsTests(unittest.TestCase):
                   jsonFileName = "./files/simulationParameters.json"
                   dataName = "Martin's experiment"
 
-                  t,IObs =  io.readTimeCurrentDataBinary(fileName)
+                  t,IObs =  io.read_time_current_data_bin(fileName)
                   time_step = t[1] - t[0]
                   num_time_pts = len(t)
                   
-                  params = io.readDimensionalParametersFromJSON(jsonFileName, dataName)
+                  params = io.read_json_dimen_params(jsonFileName, dataName)
          
                   I, amt = st.solve_reaction_from_json(time_step, num_time_pts,
                                                        params)
@@ -210,7 +210,7 @@ class SolutionToolsTests(unittest.TestCase):
                   """Test peak extraction on y=x**2."""
                   x = np.linspace(-1,1,1e5+1)
                   y = 1-np.square(x)
-                  peakX, peakY = st.extractPeaks(x,y)
+                  peakX, peakY = st.extract_peaks(x,y)
                   self.assertEqual(len(peakX), len(peakY))
                   self.assertEqual(len(peakX), 1)
                   self.assertTrue(np.isclose(peakX[0], 0))

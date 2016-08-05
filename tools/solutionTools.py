@@ -47,11 +47,11 @@ if(fabs(parameters->rho) > 1e-10) {
         t += step_size;
         double IRadius = (kappa+100) * step_size + 100;
 
-        if(t < rev_tau) {
+        if(t < tau_rev) {
             parameters->potNext = t + ac_amplitude * sin(omega * (t-tau_start) + phi);
             parameters->dEpsNext = 1 + omega * ac_amplitude * cos(omega * (t-tau_start) + phi);
         } else {
-            parameters->potNext = 2 * rev_tau - t + ac_amplitude * sin(omega * (t-tau_start)  + phi);
+            parameters->potNext = 2 * tau_rev - t + ac_amplitude * sin(omega * (t-tau_start)  + phi);
             parameters->dEpsNext = -1 + omega * ac_amplitude * cos(omega * (t-tau_start) + phi);
         }
 
@@ -71,11 +71,11 @@ if(fabs(parameters->rho) > 1e-10) {
     double op, dOP;
     for(i = 0; i < num_time_pts - 1; i++) {
         t += step_size;
-        if(t < rev_tau) {
+        if(t < tau_rev) {
             op = t + ac_amplitude * sin(omega * (t-tau_start) + phi) - eps_0;
             dOP = 1 + omega * ac_amplitude * cos(omega * (t-tau_start) + phi);
         } else {
-            op = 2 * rev_tau - t + ac_amplitude * sin(omega * (t-tau_start) + phi) - eps_0;
+            op = 2 * tau_rev - t + ac_amplitude * sin(omega * (t-tau_start) + phi) - eps_0;
             dOP = -1 + omega * ac_amplitude * cos(omega * (t-tau_start) + phi);
         }
         double expon = exp(0.5 * op);
@@ -98,7 +98,7 @@ def _test_deprecated_keys(kwargs):
 
 def solve_reaction_nondimensional(
         tau_start, step_size, num_time_pts, eps_0, ac_amplitude, omega, kappa,
-        rho, gamma, gamma1, gamma2, gamma3, rev_tau, kappa_thresh=1e4,
+        rho, gamma, gamma1, gamma2, gamma3, tau_rev, kappa_thresh=1e4,
         current_start=0.0, theta_start=0.0, phi=0.0):
     """Solves for current using backwards Euler and returns the result as
     a numpy array.
@@ -123,14 +123,14 @@ def solve_reaction_nondimensional(
         kappa = kappa_thresh
     else:
         kappa = float(kappa)
-    rev_tau = float(rev_tau)
+    tau_rev = float(tau_rev)
     eps_0 = float(eps_0)
 
     f_err = np.empty(1)
 
     c_vars = ['num_time_pts', 'rho', 'theta', 'current', 'gamma', 'gamma1',
               'gamma2', 'gamma3', 'tau_start', 'step_size', 'omega',
-              'ac_amplitude', 'kappa', 'rev_tau', 'eps_0', 'FTOL', 'TOL',
+              'ac_amplitude', 'kappa', 'tau_rev', 'eps_0', 'FTOL', 'TOL',
               'MAX_ITER', 'f_err', 'phi']
     headers = ['"solvers.c"', '"discrepancyFunctions.c"', "<stdlib.h>"]
     inc_dirs = ["/users/gavart/Private/python/electrochemistry/tools"]
@@ -177,23 +177,23 @@ def solve_reaction_dimensional(
     This method is a wrapper around the nondimensional method.
     """
     _test_deprecated_keys(kwargs)
-    eps_start = conv.nondimPot(temp, pot_start)
-    eps_rev = conv.nondimPot(temp, pot_rev)
-    ac_amplitude = conv.nondimPot(temp, ac_amplitude)
-    eps_0 = conv.nondimPot(temp, eq_pot)
+    eps_start = conv.nondim_pot(temp, pot_start)
+    eps_rev = conv.nondim_pot(temp, pot_rev)
+    ac_amplitude = conv.nondim_pot(temp, ac_amplitude)
+    eps_0 = conv.nondim_pot(temp, eq_pot)
 
-    omega = conv.freqToNondimOmega(temp, nu, freq)
+    omega = conv.freq_to_dim_omega(temp, nu, freq)
 
-    kappa = conv.nondimRate(temp, nu, eq_rate)
-    kappa_thresh = conv.nondimRate(temp, nu, 1e6)
+    kappa = conv.nondim_rate(temp, nu, eq_rate)
+    kappa_thresh = conv.nondim_rate(temp, nu, 1e6)
 
-    time_step /= conv.timeScale(temp, nu)
+    time_step /= conv.scale_time(temp, nu)
 
-    rho = conv.nondimResistance(temp, nu, area, coverage, resistance)
+    rho = conv.nondim_resistance(temp, nu, area, coverage, resistance)
 
     # Note: the parameters cdl1...3 are already nondimensional and should
     # NOT be multiplied by the scale potential E0
-    gamma = conv.nondimCapacitance(temp, nu, area, coverage, cdl)
+    gamma = conv.nondim_capacitance(temp, nu, area, coverage, cdl)
     gamma1 = cdl1
     gamma2 = cdl2
     gamma3 = cdl3
@@ -203,7 +203,7 @@ def solve_reaction_dimensional(
         kappa, rho, gamma, gamma1, gamma2, gamma3, eps_rev,
         kappa_thresh=kappa_thresh, phi=phi)
 
-    current_dimen = conv.dimCurrent(temp, nu, area, coverage, current_nondim)
+    current_dimen = conv.dim_current(temp, nu, area, coverage, current_nondim)
     amt_covered = theta * area * coverage
 
     return current_dimen, amt_covered

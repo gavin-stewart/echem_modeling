@@ -6,7 +6,7 @@ NUM_TRACE = 50
 import time
 import os.path, os, shutil
 import tools.solutionTools as st
-import tools.io as io
+import tools.fileio as io
 
 loadPath = './tests/files/temp/'
 
@@ -34,7 +34,10 @@ timeEnd = 2 * 0.75 / 27.94e-3
 import numpy as np
 def genRandParams():
 	"""Return a random parameter set as a dictionary"""
-	data = {"temp" : 293.15, "nu" : 27.94e-3, "area" : 0.03, "coverage" : 1.26e-11, "reverse" : True, "EStart" : -0.85, "ERev" : -0.1, "freq" : 8.959, "dE" : 150e-3, "type" : "dimensional"}
+	data = {"temp" : 293.15, "nu" : 27.94e-3, "area" : 0.03,
+                 "coverage" : 1.26e-11, "reverse" : True, "pot_start" : -0.85,
+                 "pot_rev" : -0.1, "freq" : 8.959, "ac_amplitude" : 150e-3,
+                 "type" : "dimensional"}
 	data["eq_pot"] = np.random.normal(loc=-0.4, scale = 1e-2)
 	data["eq_rate"] = np.random.lognormal(mean=np.log(4000.0), sigma=2)
 	data["resistance"] = np.random.lognormal(mean=np.log(100.0), sigma=1e-2)
@@ -53,12 +56,12 @@ def generateFromScratch():
 @timeit
 def readFromFileCompressed():
 	for i in range(NUM_TRACE):
-		t,I = io.readTimeCurrentDataBinary(os.path.join(loadPath, "compressed/data"+str(i)+".npz"))
+		t,I = io.read_time_current_data_bin(os.path.join(loadPath, "compressed/data"+str(i)+".npz"))
 
 @timeit
 def readFromFileUncompressed():
 	for i in range(NUM_TRACE):
-		t,I = io.readTimeCurrentDataBinary(os.path.join(loadPath, "uncompressed/data"+str(i)+".npz"))
+		t,I = io.read_time_current_data_bin(os.path.join(loadPath, "uncompressed/data"+str(i)+".npz"))
 
 
 
@@ -73,8 +76,8 @@ for i in range(NUM_TRACE):
 	data.append(dataCurr)
 	I, _ = st.solve_reaction_from_json(time_step, num_time_pts, dataCurr)
 	#Save compressed and uncompressed copies.
-	io.writeTimeCurrentDataBinaryCompressed(os.path.join(loadPath, "compressed/data"+str(i)+".npz"), t, I, overwrite=True)		
-	io.writeTimeCurrentDataBinaryUncompressed(os.path.join(loadPath, "uncompressed/data"+str(i)+".npz"), t, I, overwrite=True)
+	io.write_time_current_bin_cmp(os.path.join(loadPath, "compressed/data"+str(i)+".npz"), t, I, overwrite=True)		
+	io.write_time_current_data_bin(os.path.join(loadPath, "uncompressed/data"+str(i)+".npz"), t, I, overwrite=True)
 
 generateFromScratch()
 

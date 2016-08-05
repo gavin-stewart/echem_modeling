@@ -25,11 +25,11 @@ dataName = "Dispersion points plot"
 baseData = io.readParametersFromJSON(fileName, dataName)
 # Remove E_0, k_0 from the data and store them as means for the distributions.
 E_0Mean = baseData.pop("eq_pot", None)
-E_0SDs = [0.0, 1e-2, 2e-2, 3e-2, 4e-2, 5e-2, 6e-2, 7e-2, 8e-2, 9e-2, 1e-1]
+E_0SDs = np.linspace(0, 15e-2, 16)
 k_0Mean = baseData.pop("eq_rate", None)
 # Choose the shape parameter for the log-normal distribution underlying k_0 to
 # give a desired coefficient of variation.
-k_0CVs = np.array([0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0])
+k_0CVs = np.linspace(0, 7, 15)
 k_0SDs = np.sqrt(np.log(1 + np.square(k_0CVs)))
 freq = baseData["freq"]
 
@@ -198,7 +198,7 @@ title = 'Points required to achieve an error of < 1% with only E_0 dispersion'
 plt.title(title)
 
 figurek0Only = plt.figure(2)
-num_time_ptsk0Only = [data[(0.0, k_0SD)][0] for k_0SD in k_0SDs]
+num_time_ptsk0Only = [data[(0.0, k_0SD)][1] for k_0SD in k_0SDs]
 plt.plot(k_0CVs, num_time_ptsk0Only)
 plt.xlabel('k_0 dispersion (CV)')
 plt.ylabel('Number of points')
@@ -208,7 +208,7 @@ plt.title(title)
 figureBoth = plt.figure(3)
 # Reshape data into an array
 dataArray = []
-for k_0SD in k_0SDs:
+for k_0SD, k_0CV in zip(k_0SDs, k_0CVs):
     row = []
     for E_0SD in E_0SDs:
         dataVal = data[E_0SD, k_0SD]
@@ -216,12 +216,17 @@ for k_0SD in k_0SDs:
     dataArray.append(row)
 
 dataArray = np.array(dataArray)
-dataArray = np.ravel(dataArray)
 ptsMin = 0
 ptsMax = np.max(dataArray)
 Em, km = np.meshgrid(E_0SDs, k_0CVs)
 #TODO: Need to see if this produces the desired output.
-plt.pcolor(Em, km, dataArray, cmap="RdBu", vmin = ptsMin, vmax = ptsMax)
+plt.pcolormesh(Em, km, dataArray, cmap="Oranges", vmin = ptsMin, vmax = ptsMax)
+plt.title("Number of points required at difference kinetic/thermodynamic dispersions")
+plt.axis([Em.min(), Em.max(), km.min(), km.max()])
+plt.xlabel("E_0 dispersion (V)")
+plt.ylabel("k_0 dispersion (CV)")
+plt.colorbar()
+
 
 # Uncomment to plot
 plt.show(block=True)

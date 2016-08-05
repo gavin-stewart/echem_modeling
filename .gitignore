@@ -1,4 +1,4 @@
-files/*
+/files/*
 # Compiled python
 *.pyc
 # Vim extensions
