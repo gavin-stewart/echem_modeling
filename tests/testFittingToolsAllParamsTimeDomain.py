@@ -18,7 +18,7 @@ class FittingToolsAllParamsTimeDomainTestCase(unittest.TestCase):
         fileName = "./files/simulationParameters.json"
         dataName = "Martin's experiment"
         cls.params = io.read_json_params(fileName, dataName)
-        cls.tEnd = 2 * (cls.params["ERev"] - cls.params["EStart"])\
+        cls.tEnd = 2 * (cls.params["pot_rev"] - cls.params["pot_start"])\
                  / cls.params["nu"]
         cls.num_time_pts = int(np.ceil(cls.tEnd * cls.params["freq"] * 200))
         cls.time_step = cls.tEnd / cls.num_time_pts
