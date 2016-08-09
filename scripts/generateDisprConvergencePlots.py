@@ -3,11 +3,10 @@
 # with kinetic and thermodynamic dispersion.
 
 #Add top level package to python path
-import getTopLevel
 import pickle
-import tools.io as io
-import tools.solution_tools as st
-import tools.grid as gt
+import electrochemistry.tools.fileio as io
+import electrochemistry.tools.solution_tools as st
+import electrochemistry.tools.grid as gt
 import numpy as np
 import os.path
 from scipy.stats.distributions import norm
@@ -20,16 +19,16 @@ ERRRELSQR = np.square(0.01)
 
 MAX_HARM = 12
 
-fileName = getTopLevel.makePathFromTop("files/simulationParameters.json")
+file_name = io.get_file_resource_path("simulationParameters.json")
 dataName = "Dispersion points plot"
-baseData = io.readParametersFromJSON(fileName, dataName)
+baseData = io.read_json_params(file_name, dataName)
 # Remove E_0, k_0 from the data and store them as means for the distributions.
-E_0Mean = baseData.pop("eq_pot", None)
-E_0SDs = np.linspace(0, 15e-2, 16)
-k_0Mean = baseData.pop("eq_rate", None)
+eq_pot_mean = baseData.pop("eq_pot")
+E_0SDs = np.linspace(0, 10e-2, 11)
+eq_rate_mean = baseData.pop("eq_rate")
 # Choose the shape parameter for the log-normal distribution underlying k_0 to
 # give a desired coefficient of variation.
-k_0CVs = np.linspace(0, 7, 15)
+k_0CVs = np.linspace(0, 8, 17)
 k_0SDs = np.sqrt(np.log(1 + np.square(k_0CVs)))
 freq = baseData["freq"]
 
@@ -39,19 +38,19 @@ time_step = endTime / num_time_pts
 trim = int(np.floor(num_time_pts / 100))
 t = np.linspace(0, endTime, num_time_pts)
 
-E_0BinFunFactory = lambda E_0SD: lambda n: gt.hermgauss_param(n, E_0Mean,
-                                                           E_0SD, False)
-k_0BinFunFactory = lambda k_0SD: lambda n: gt.hermgauss_param(n, k_0Mean,
-                                                            k_0SD, True)
+E_0BinFunFactory = lambda E_0SD: lambda n: gt.hermgauss_param(n, eq_pot_mean,
+                                                              E_0SD, False)
+k_0BinFunFactory = lambda k_0SD: lambda n: gt.hermgauss_param(n, eq_rate_mean,
+                                                              k_0SD, True)
 
 baseLineNumPts = 50
 
-dataPickleFile = getTopLevel.makePathFromTop("files/dispersionPlotsData.dat")
+dataPickleFile = io.get_file_resource_path("dispersionPlotsData.dat")
 benchmark = None
 benchmarkHarmonics = None
 
-E_0MinReqdPts = {}
-k_0MinReqdPts = {}
+eq_pot_min_pts = {}
+eq_rate_min_pts = {}
 
 def l2Norm(a):
 	return np.sum(np.square(a))
@@ -91,8 +90,8 @@ for E_0SD in E_0SDs:
         if (E_0SD, k_0SD) in data:
             print "Data exists of E_0SD = {0}, k_0SD = {1}".format(E_0SD, k_0SD)
             ptsE, ptsK = data[(E_0SD, k_0SD)]
-            E_0MinReqdPts[E_0SD] = ptsE
-            k_0MinReqdPts[k_0SD] = ptsK
+            eq_pot_min_pts[E_0SD] = ptsE
+            eq_rate_min_pts[k_0SD] = ptsK
         else:
             print "Beginning processing for E_0SD = {0}, k_0SD = {1}".format(E_0SD, k_0SD)
             tStart = time.time()
@@ -172,12 +171,19 @@ for E_0SD in E_0SDs:
                     best = bisect2d(nleBin, nue, nlk, nrk - 1, best)
 
                 return best
-            ptsE, ptsK = bisect2d(E_0MinReqdPts.get(E_0SD, 1), baseLineNumPts,
-                                  k_0MinReqdPts.get(k_0SD, 1), baseLineNumPts,
-                                  (baseLineNumPts, baseLineNumPts))
-            assert closeToBenchmark(getData(E_0SD, k_0SD, ptsE, ptsK))
-            E_0MinReqdPts[E_0SD] = ptsE
-            k_0MinReqdPts[k_0SD] = ptsK
+            if closeToBenchmark(getData(E_0SD, k_0SD,
+                                        eq_pot_min_pts.get(E_0SD, 1),
+                                        eq_rate_min_pts.get(k_0SD, 1))):
+                ptsE = eq_pot_min_pts.get(E_0SD, 1)
+                ptsK = eq_rate_min_pts.get(k_0SD, 1)
+            else:
+                ptsE, ptsK = bisect2d(
+                        eq_pot_min_pts.get(E_0SD, 1), baseLineNumPts,
+                        eq_rate_min_pts.get(k_0SD, 1), baseLineNumPts,
+                        (baseLineNumPts, baseLineNumPts))
+                assert closeToBenchmark(getData(E_0SD, k_0SD, ptsE, ptsK))
+            eq_pot_min_pts[E_0SD] = ptsE
+            eq_rate_min_pts[k_0SD] = ptsK
             data[(E_0SD, k_0SD)] = (ptsE, ptsK)
             with open(dataPickleFile, 'w+') as f:
                 pickle.dump(data, f)
@@ -192,17 +198,17 @@ for E_0SD in E_0SDs:
 figureE0Only = plt.figure(1)
 num_time_ptsE0Only = [data[(E_0SD, 0.0)][0] for E_0SD in E_0SDs]
 plt.plot(E_0SDs, num_time_ptsE0Only)
-plt.xlabel('E_0 dispersion (V)')
+plt.xlabel(r'$E_0$ dispersion (V)')
 plt.ylabel('Number of points')
-title = 'Points required to achieve an error of < 1% with only E_0 dispersion'
+title = r'Points required with only $E_0$ dispersion'
 plt.title(title)
 
 figurek0Only = plt.figure(2)
 num_time_ptsk0Only = [data[(0.0, k_0SD)][1] for k_0SD in k_0SDs]
 plt.plot(k_0CVs, num_time_ptsk0Only)
-plt.xlabel('k_0 dispersion (CV)')
+plt.xlabel(r'$k_0$ dispersion (CV)')
 plt.ylabel('Number of points')
-title = 'Points required to achieve an error of < 1% with only k_0 dispersion'
+title = r'Points required with only $k_0$ dispersion'
 plt.title(title)
 
 figureBoth = plt.figure(3)
@@ -219,14 +225,11 @@ dataArray = np.array(dataArray)
 ptsMin = 0
 ptsMax = np.max(dataArray)
 Em, km = np.meshgrid(E_0SDs, k_0CVs)
-#TODO: Need to see if this produces the desired output.
 plt.pcolormesh(Em, km, dataArray, cmap="Oranges", vmin = ptsMin, vmax = ptsMax)
-plt.title("Number of points required at difference kinetic/thermodynamic dispersions")
+plt.title("Points required at different levels of dispersion")
 plt.axis([Em.min(), Em.max(), km.min(), km.max()])
-plt.xlabel("E_0 dispersion (V)")
-plt.ylabel("k_0 dispersion (CV)")
+plt.xlabel("$E_0$ dispersion (V)")
+plt.ylabel("$k_0$ dispersion (CV)")
 plt.colorbar()
 
-
-# Uncomment to plot
 plt.show(block=True)

@@ -1,6 +1,10 @@
-import tools.solution_tools as st
-import tools.grid as gt
-import tools.fileio as io
+"""Verify the solveIWithDispersionDimensional method reproduces the results of
+Morris et al 2015
+"""
+
+import electrochemistry.tools.solution_tools as st
+import electrochemistry.tools.grid as gt
+import electrochemistry.tools.fileio as io
 import numpy as np
 from scipy.stats.distributions import norm
 import unittest
@@ -10,7 +14,9 @@ class MatchesMorrisTestSet(unittest.TestCase):
     #TODO: Clean up.
 
     def testsolveIWithDispersionMatchesMorrisNoDisp(self):
-        """Verify the solveIWithDispersionDimensional method reproduces the results of Morris et al 2015"""
+        """Verify the solveIWithDispersionDimensional method reproduces the
+        results of Morris et al 2015.
+        """
         t = np.linspace(0,7, 7e3)
         time_step = 7 / (7e3 - 1)
         num_time_pts = int(7e3)
@@ -29,7 +35,9 @@ class MatchesMorrisTestSet(unittest.TestCase):
         self.assertLess(abs(width - 0.123), 7e-4)
 
     def testsolveIWithDispersionMatchesMorrisE0Disp(self):
-        """The solveIWithDispersionDimensional method reproduces the results fo Morris et al 2015"""
+        """The solveIWithDispersionDimensional method reproduces the results
+        of Morris et al 2015.
+        """
         time = np.linspace(0, 7, 7e4) #1000 pts per second
         time_step = time[1] - time[0]
         num_time_pts = len(time)
@@ -68,14 +76,16 @@ class MatchesMorrisTestSet(unittest.TestCase):
         bins = [(E_0, 0.1, we) for E_0, we in zip(E_0Vals, wE)]
 
         I, amt = st.solve_reaction_disp_dim_bins(time_step, num_time_pts, dE, freq, Ru,
-                    Cdl, Cdl1, Cdl2, Cdl3, EStart, ERev, temp, nu, area, 
+                    Cdl, Cdl1, Cdl2, Cdl3, EStart, ERev, temp, nu, area,
                     coverage, bins)
 
         width = st.half_maximum_width(I, time, nu)
         self.assertLess(abs(width - ew), 7e-4) #Rounding error + 2*step size + solution error (estimated at 1*step size)
 
     def testSolveIWithDispersionMatchesMorrisk0Disp(self):
-        """The solveIWithDispersionDimensional method matches results from Morris et al 2015"""
+        """The solveIWithDispersionDimensional method matches results from
+        Morris et al 2015.
+        """
         time = np.linspace(0, 7, 1.4e5) #1000 pts per second
         time_step = time[1] - time[0]
         num_time_pts = len(time)
@@ -104,7 +114,7 @@ class MatchesMorrisTestSet(unittest.TestCase):
         wK = norm.cdf(rightBinEnds, loc=0, scale=2) -\
         norm.cdf(leftBinEnds, loc=0, scale=2)
 
-        expWidth = np.array([0.124, 0.128, 0.134, 0.141, 0.150, 0.161, 
+        expWidth = np.array([0.124, 0.128, 0.134, 0.141, 0.150, 0.161,
                              0.172, 0.185, 0.198, 0.211])
 
         self.assertEqual(np.sum(wK), 1)
@@ -112,15 +122,15 @@ class MatchesMorrisTestSet(unittest.TestCase):
         for m, ew in zip(range(1, 11), expWidth):
             k_0Vals = 0.1 * 2**(0.1*m*k_0BinsUnscaled)
             bins = [(0, k_0, w) for k_0, w in zip(k_0Vals, wK)]
-            I, amt = st.solve_reaction_disp_dim_bins(time_step, 
+            I, amt = st.solve_reaction_disp_dim_bins(time_step,
                         num_time_pts, dE, freq, Ru, Cdl, Cdl1, Cdl2, Cdl3,
                         EStart, ERev, temp, nu, area, coverage, bins)
 
             width = st.half_maximum_width(I, time, nu)
             err = abs(width - ew)
-            #Rounding error + 2*step size + error in I 
+            #Rounding error + 2*step size + error in I
             #(estimated at 1*stepsize)
-            self.assertLess(err, 7e-4) 
+            self.assertLess(err, 7e-4)
 
     @unittest.expectedFailure
     def testMorrisE0DispWithMC(self):

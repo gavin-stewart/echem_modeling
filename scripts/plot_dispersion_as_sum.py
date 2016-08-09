@@ -3,9 +3,9 @@
 """
 from matplotlib import cm
 import matplotlib.pyplot as plt
-import tools.solution_tools as st
-import tools.grid as gt
-import tools.fileio as io
+import electrochemistry.tools.solution_tools as st
+import electrochemistry.tools.grid as gt
+import electrochemistry.tools.fileio as io
 import numpy as np
 
 def plot_envelopes(time, current, color):

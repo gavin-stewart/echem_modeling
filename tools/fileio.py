@@ -3,6 +3,7 @@
 import numpy as np
 import os.path
 import json
+import inspect
 
 def read_time_current_data(file_name):
     """Returns time and current data contained in the given file as two
@@ -160,3 +161,14 @@ def write_json_params(file_name, parameters):
         data.append(parameters)
     with open(file_name, "w") as out_file:
         json.dump(data, out_file)
+
+def get_file_dir():
+    """Returns the directory where files are stored"""
+    file_name = inspect.getframeinfo(inspect.currentframe()).filename
+    par_dir = os.path.join(os.path.dirname(os.path.abspath(file_name)),
+                           os.pardir)
+    return os.path.join(par_dir, "files")
+
+def get_file_resource_path(file_name):
+    """Get a path to the specified file in the project files folder."""
+    return os.path.join(get_file_dir(), file_name)

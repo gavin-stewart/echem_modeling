@@ -1,7 +1,7 @@
 """Time how long it takes to solve the DE for various values of eq_pot."""
 
-import tools.fileio as io
-import tools.solution_tools as st
+import electrochemistry.tools.fileio as io
+import electrochemistry.tools.solution_tools as st
 import numpy as np
 from profilehooks import profile
 

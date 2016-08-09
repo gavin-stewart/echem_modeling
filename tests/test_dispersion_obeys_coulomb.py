@@ -1,7 +1,10 @@
+"""Test that reaction with dispersion proceed to completion and that charge is
+conserved.
+"""
 
-import tools.solution_tools as st
-import tools.grid as gt
-import tools.fileio as io
+import electrochemistry.tools.solution_tools as st
+import electrochemistry.tools.grid as gt
+import electrochemistry.tools.fileio as io
 import numpy as np
 from scipy.stats.distributions import norm
 import unittest
@@ -13,19 +16,19 @@ def E0QuadFunFactory(ESD):
 	return lambda n: gt.hermgauss_param(n, -0.41, ESD, False)
 
 class DispersionCoulombTests(unittest.TestCase):
-	""" 
-	Tests that functions relating to dispersion perform as expected.	
+	"""
+	Tests that functions relating to dispersion perform as expected.
 	"""
 
 	ESDVals = [1e-3, 1e-2, 1e-1]
 	kSDVals = [1, 2, 3]
 	numSampPts = 15
-	
+
 	def setUp(self):
 		self.baseData = io.read_json_params('./files/simulationParameters.json', "disp Coulomb")
 		tEnd = (self.baseData["pot_rev"] - self.baseData["pot_start"]) / self.baseData["nu"]
 		self.num_time_pts = np.ceil(tEnd * 8.959 * 200)
-	
+
 		self.time_step = tEnd / (self.num_time_pts - 1)
 
 	def addResistance(self):
@@ -48,7 +51,7 @@ class DispersionCoulombTests(unittest.TestCase):
 		I, amtNoDisp = st.solve_reaction_from_json(self.time_step, self.num_time_pts, self.baseData)
 		endAmt = amtNoDisp[-1]
 		INoDispInt = np.sum(I) / self.num_time_pts
-		
+
 		for ESD in self.ESDVals:
 			for kSD in self.kSDVals:
 				self.baseData["bins"] = gt.product_grid(E0QuadFunFactory(ESD), self.numSampPts, k0QuadFunFactory(kSD), self.numSampPts)
@@ -61,7 +64,7 @@ class DispersionCoulombTests(unittest.TestCase):
 		"""Ensure that the integral of Faradaic current over time is constant."""
 		self.checkSatisfiesCoulomb()
 
-	
+
 	def testDispersionObeysCoulombsLawDCWithNoCapacitance(self):
 		"""Ensure that the integral of Faradaic current over time is constant."""
 		self.addResistance()

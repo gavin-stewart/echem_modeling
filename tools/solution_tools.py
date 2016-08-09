@@ -2,7 +2,7 @@
 """
 
 import numpy as np
-import tools.conversion as conv
+import electrochemistry.tools.conversion as conv
 import scipy.signal
 import scipy.stats.distributions
 import scipy.interpolate
@@ -365,8 +365,10 @@ def interpolated_total_envelope(x_vals, y_vals):
     """Returns an estimate of the envelope of the signal (x,y) by
     interpolating the maxima of (x,abs(y))
     """
-    x_vals, y_vals = zip(*sorted(zip(x_vals, y_vals), key=lambda n: n[0]))
-    x_peaks, y_peaks = extract_peaks(x_vals, abs(y_vals))
+    x_vals, y_vals = map(list, zip(*sorted(zip(x_vals, y_vals),
+                                           key=lambda n: n[0])))
+    y_vals = [abs(y) for y in y_vals]
+    x_peaks, y_peaks = extract_peaks(x_vals, y_vals)
     if x_vals[0] != x_peaks[0]:
         x_peaks.insert(0, x_vals[0])
         y_peaks.insert(0, abs(y_vals[0]))
@@ -380,7 +382,8 @@ def interpolated_upper_envelope(x_vals, y_vals):
     """Returns an estimate of the envelope of the signal (x,y) by
     interpolating the maxima of (x, y)
     """
-    x_vals, y_vals = zip(*sorted(zip(x_vals, y_vals), key=lambda n: n[0]))
+    x_vals, y_vals = map(list, zip(*sorted(zip(x_vals, y_vals),
+                                           key=lambda n: n[0])))
     x_peaks, y_peaks = extract_peaks(x_vals, y_vals)
     if x_vals[0] != x_peaks[0]:
         x_peaks.insert(0, x_vals[0])
@@ -397,11 +400,12 @@ def interpolated_lower_envelope(x_vals, y_vals):
     """
     x_vals, y_vals = map(list, zip(*sorted(zip(x_vals, y_vals),
                                            key=lambda n: n[0])))
-    x_peaks, y_peaks = extract_peaks(x_vals, -y_vals)
+    y_vals = [-y for y in y_vals]
+    x_peaks, y_peaks = extract_peaks(x_vals, y_vals)
     if x_vals[0] != x_peaks[0]:
         x_peaks.insert(0, x_vals[0])
         y_peaks.insert(0, abs(y_vals[0]))
-    if x_vals[-1] not in x_peaks[-1]:
+    if x_vals[-1] != x_peaks[-1]:
         x_peaks.append(x_vals[-1])
         y_peaks.append(abs(y_vals[-1]))
     #Sort by x value

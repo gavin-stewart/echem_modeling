@@ -2,7 +2,7 @@
 """
 
 import unittest
-import tools.fileio as io
+import electrochemistry.tools.fileio as io
 import numpy as np
 import os.path
 import os

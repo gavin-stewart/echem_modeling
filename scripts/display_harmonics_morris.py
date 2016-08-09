@@ -1,6 +1,5 @@
 """The code for plotting harmonics of current."""
-#pylint: disable=
-import tools.solution_tools as st
+import electrochemistry.tools.solution_tools as st
 import numpy as np
 import matplotlib.pyplot as plt
 

@@ -1,9 +1,11 @@
 #!/usr/bin/python
-# Creates a plot of the convergence of sparse grid vs product grid methods of calculating current with kinetic and thermodynamic dispersion.
+"""Creates a plot of the convergence of sparse grid vs product grid methods of
+calculating current with kinetic and thermodynamic dispersion.
+"""
 
-import ..tools.io as io
-import ..tools.solutionTools as st
-import ..grid as gt
+import electrochemistry.tools.fileio as io
+import electrochemistry.tools.solution_tools as st
+import electrochemistry.tools.grid as gt
 import numpy as np
 import os.path
 from scipy.stats.distributions import norm
@@ -36,7 +38,7 @@ ptSeq = [1,3,5,9,17,33]
 def setupForHermGaussProduct(num_time_pts):
 	E_0Bins = lambda n: gt.hermgauss_param(n, E_0Mean, E_0SD, False)
 	k_0Bins = lambda n: gt.hermgauss_param(n, k_0Mean, k_0SD, True)
-	
+
 	baseData["bins"] =  gt.product_grid(E_0Bins, num_time_pts, k_0Bins, num_time_pts)
 
 def setupForHermGaussSparse(level):
@@ -48,7 +50,7 @@ def setupForHermGaussSparse(level):
 
 def l2Norm(a):
 	return np.sum(np.square(a))
- 
+
 def genFileName(name):
 	return "./files/dispersion/" + name + ".npz"
 
@@ -62,7 +64,7 @@ if os.path.exists(simFileName):
 	t, IHR = io.read_time_current_data_bin(simFileName)
 else:
 	t = np.linspace(0, endTime, num_time_pts)
-	setupForHermGauss(benchmarkNumEvals)
+	setupForHermGaussProduct(benchmarkNumEvals)
 	IHR, _ = st.solve_reaction_from_json(time_step, num_time_pts, baseData)
 	del _
 	io.write_time_current_bin_cmp(simFileName, t, IHR)
@@ -97,7 +99,7 @@ num_time_pts = []
 harmErr = []
 print "Beginning processing for sparse grid"
 for level in range(1, len(ptSeq)):
-	num_time_pts.append(np.sum(np.array(ptSeq[:level]) * np.array(gt.reverse(ptSeq[:level]))) + np.sum(np.array(ptSeq[:level-1]) * np.array(gt.reverse(ptSeq[:level-1]))))
+	num_time_pts.append(np.sum(np.array(ptSeq[:level]) * np.array(list(reversed(ptSeq[:level])))) + np.sum(np.array(ptSeq[:level-1]) * np.array(list(reversed(ptSeq[:level-1])))))
 	simFileName = genFileName("HermGaussSparse"+str(level)+"level")
 	if os.path.exists(simFileName):
 		_,I = io.read_time_current_data_bin(simFileName)

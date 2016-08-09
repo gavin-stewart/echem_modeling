@@ -1,20 +1,17 @@
 #!/bin/python
-# A script for generating high resolution datasets to be compared against lower resolution datasets to guess
-# at the minimum numbe rof points needed to have a good resolution.
+"""A script for generating high resolution datasets to be compared against
+lower resolution datasets to guess at the minimum numbe rof points needed to
+have a good resolution.
+"""
 
-#Add top level package to python path
-import os, sys, os.path
-topLevel = os.path.realpath(os.path.join(os.path.realpath(__file__), os.pardir))
-
-
-import tools.fileio as io
+import electrochemistry.tools.fileio as io
 import numpy as np
-import solutionTools
+import electrochemistry.tools.solution_tools as solutionTools
 
 # Data supplied by Martin.
 EStart = -0.85
 ERev = -0.1
-freq = 8.95925020 #Rescaled from Martin's data
+freq = 8.95925020
 dE = 150e-3
 nu = 27.94e-3
 temp = 25+273.15
@@ -26,9 +23,9 @@ Cdl1 = 0.000653657774506
 Cdl2 = 0.000245772700637
 Cdl3 = 1.10053945995e-6
 E_0 = -0.413798197974
-k_0 = 4000 #Rescaled from Martin's paper
+k_0 = 4000
 
-tRev = (ERev - EStart) / nu		
+tRev = (ERev - EStart) / nu
 tEnd = 2*tRev
 num_time_pts = 1e7
 
