@@ -16,7 +16,7 @@ TRIM = slice(5000, -5000)
 COLORS = itertools.cycle(
     cm.rainbow(np.linspace(0, 1, 4))) #pylint: disable=no-member
 
-NUM_EVALS = 40
+NUM_EVALS = 30
 
 FILE_NAME = io.get_file_resource_path("simulationParameters.json")
 
@@ -103,9 +103,9 @@ def main():
         eq_pot_bins = eq_pot_bin_fact(eq_pot_stdev)
         base_data["bins"] = gt.product_grid(eq_pot_bins, NUM_EVALS,
                                             eq_rate_bins, 1)
-        I, _ = st.solve_reaction_from_json(time_step, num_time_pts, base_data)
+        current, _ = st.solve_reaction_from_json(time_step, num_time_pts, base_data)
         label = "E_0 disp " + str(eq_pot_stdev)
-        plotCurrentAndHarmonics(I, label, plotsIE0, plotsHarmE0)
+        plotCurrentAndHarmonics(current, label, plotsIE0, plotsHarmE0)
 
 
 
@@ -116,9 +116,9 @@ def main():
         eq_rate_bins = eq_rate_bin_fact(eq_rate_stdev)
         base_data["bins"] = gt.product_grid(eq_pot_bins, 1,
                                             eq_rate_bins, NUM_EVALS)
-        I, _ = st.solve_reaction_from_json(time_step, num_time_pts, base_data)
+        current, _ = st.solve_reaction_from_json(time_step, num_time_pts, base_data)
         label = "k_0 disp " + str(eq_rate_stdev)
-        plotCurrentAndHarmonics(I, label, plotsIk0, plotsHarmk0)
+        plotCurrentAndHarmonics(current, label, plotsIk0, plotsHarmk0)
 
 
 
@@ -129,10 +129,10 @@ def main():
         eq_rate_bins = eq_rate_bin_fact(eq_rate_stdev)
         base_data["bins"] = gt.product_grid(eq_pot_bins, NUM_EVALS,
                                             eq_rate_bins, NUM_EVALS)
-        I, _ = st.solve_reaction_from_json(time_step, num_time_pts, base_data)
+        current, _ = st.solve_reaction_from_json(time_step, num_time_pts, base_data)
         label = "E_0 disp " + str(eq_pot_stdev) + " k_0 disp "\
               + str(eq_rate_stdev)
-        plotCurrentAndHarmonics(I, label, plotsIboth, plotsHarmboth)
+        plotCurrentAndHarmonics(current, label, plotsIboth, plotsHarmboth)
 
 #Save plots
     setupAndSavePlots(plotsE0, plotsIE0, plotsHarmE0, "E0Dispersion.pdf")

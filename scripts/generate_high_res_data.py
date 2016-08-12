@@ -32,7 +32,7 @@ num_time_pts = 1e7
 t = np.linspace(0, tEnd, num_time_pts)
 time_step = t[1] - t[0]
 
-fileName = "/users/gavart/Private/python/electrochemistry/files/highresSimData.npz"
+fileName = io.get_file_resource_path("highresSimData.npz")
 
 print "Beginning to generate the data. . ."
 

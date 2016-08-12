@@ -1,3 +1,4 @@
+#!/bin/python
 """The code for plotting harmonics of current."""
 import electrochemistry.tools.solution_tools as st
 import numpy as np

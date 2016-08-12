@@ -54,8 +54,8 @@ if(fabs(parameters->rho) > 1e-10) {
             parameters->dEpsNext = -1 + omega * ac_amplitude * cos(omega * (t-tau_start) + phi);
         }
 
-        current[i+1] = current[i] + 0.5 * IRadius;
-        double currentGuess = current[i] - 0.5 * IRadius;
+        current[i+1] = current[i] + 1 * IRadius;
+        double currentGuess = current[i] - 1 * IRadius;
 
         if(solverSecantToFP(MAX_ITER, (current+i+1), currentGuess, &discrepParam, TOL, FTOL, parameters) == -1) { //Failed to converge. . .
             return_val = i;
@@ -287,14 +287,25 @@ def short_centered_kaiser_window(halflength, center, array_size):
     return window
 
 def extract_harmonic(harmonic_number, freq, data):
-    """Returns the nth harmonic of a given frequency extracted from real data.
+    """Returns the nth harmonic of a given frequency(s) extracted from real 
+    data.
 
     Note that a Kaiser window is used to extract the harmonic."""
     fourier = np.fft.rfft(data)
     window_halfwidth = 0.75 * freq
-    window = short_centered_kaiser_window(window_halfwidth,
-                                          harmonic_number*freq, len(fourier))
-    return np.fft.irfft(fourier * window)
+    if not isinstance(harmonic_number, list): #Non-vectorized input.
+        window = short_centered_kaiser_window(window_halfwidth,
+                                              harmonic_number * freq, 
+                                              len(fourier))
+        return np.fft.irfft(fourier * window)
+    else:
+        harmonics_list = [None] * len(harmonic_number)
+        for ind, harm_num in enumerate(harmonic_number):
+            window = short_centered_kaiser_window(window_halfwidth,
+                                                  harm_num * freq,
+                                                  len(fourier))
+            harmonics_list[ind] = np.fft.irfft(fourier * window)
+        return harmonics_list
 
 def solve_reaction_disp_dim_mc(
         time_step, num_time_pts, num_runs, ac_amplitude, freq, resistance,

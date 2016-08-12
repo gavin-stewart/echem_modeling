@@ -167,7 +167,7 @@ def get_file_dir():
     file_name = inspect.getframeinfo(inspect.currentframe()).filename
     par_dir = os.path.join(os.path.dirname(os.path.abspath(file_name)),
                            os.pardir)
-    return os.path.join(par_dir, "files")
+    return os.path.abspath(os.path.join(par_dir, "files"))
 
 def get_file_resource_path(file_name):
     """Get a path to the specified file in the project files folder."""
