@@ -1,31 +1,37 @@
 [
-{"name" : "Martin's experiment", "type" : "dimensional", "EStart" : -0.85,
-"ERev" : -0.1, "E_0" : -0.413798197974, "dE" : 150e-3, "freq" : 8.95925020, 
-"k_0" : 4000.0, "Ru" : 100.0, "Cdl" : 0.000133878548046, 
-"Cdl1" : 0.000653657774506, "Cdl2" : 0.000245772700637, 
-"Cdl3" : 1.10053945995e-6, "coverage" : 0.012608239e-9, "nu" : 27.94e-3, 
+{"name" : "Martin's experiment", "type" : "dimensional", "pot_start" : -0.85,
+"pot_rev" : -0.1, "eq_pot" : -0.413798197974, "ac_amplitude" : 150e-3, "freq" : 8.95925020, 
+"eq_rate" : 4000.0, "resistance" : 100.0, "cdl" : 0.000133878548046, 
+"cdl1" : 0.000653657774506, "cdl2" : 0.000245772700637, 
+"cdl3" : 1.10053945995e-6, "coverage" : 0.012608239e-9, "nu" : 27.94e-3, 
 "temp" : 298.15, "area" : 0.03, "reverse" : true},
 
 
 {"name" : "disp Coulomb", "type" : "disp-dimensional-bins", 
-"EStart" : -0.85, "ERev" : -0.1, "dE" : 0.0, "freq" : 8.95925020, "Ru" : 0.0, 
-"Cdl" : 0.0, "Cdl1" : 0.0, "Cdl2" : 0.0, "Cdl3" : 0.0, 
+"pot_start" : -0.85, "pot_rev" : -0.1, "ac_amplitude" : 0.0, "freq" : 8.95925020, "resistance" : 0.0, 
+"cdl" : 0.0, "cdl1" : 0.0, "cdl2" : 0.0, "cdl3" : 0.0, 
 "coverage" : 1.2608239e-11, "nu" : 50e-3, "temp" : 298.15, "area" : 0.03,
  "reverse" : false, "bins" : [[-0.41, 4e3, 1]]},
 
-{"name" : "Morris no disp", "type" : "dimensional", "EStart" : -0.2,
-"ERev" : 0.5, "E_0" : 0, "dE" : 0, "freq" : 0, "k_0" : 0.1, "Ru" : 100.0,
-"Cdl" : 0, "Cdl1" : 0, "Cdl2" : 0, "Cdl3" : 0, "coverage" : 1e-11, 
+{"name" : "Morris no disp", "type" : "dimensional", "pot_start" : -0.2,
+"pot_rev" : 0.5, "eq_pot" : 0, "ac_amplitude" : 0, "freq" : 0, "eq_rate" : 0.1, "resistance" : 100.0,
+"cdl" : 0, "cdl1" : 0, "cdl2" : 0, "cdl3" : 0, "coverage" : 1e-11, 
 "nu" : 0.1, "temp" : 293, "area" : 1, "reverse" : false},
 
-{"name" : "MC test k_0", "type" : "dimensional", "EStart" : -0.2,
-"ERev" : 0.5, "E_0" : 0, "dE" : 0, "freq" : 0, "k_0" : 0.1, "Ru" : 100.0,
-"Cdl" : 0, "Cdl1" : 0, "Cdl2" : 0, "Cdl3" : 0, "coverage" : 1e-11, 
+{"name" : "MC test k_0", "type" : "dimensional", "pot_start" : -0.2,
+"pot_rev" : 0.5, "eq_pot" : 0, "ac_amplitude" : 0, "freq" : 0, "eq_rate" : 0.1, "resistance" : 100.0,
+"cdl" : 0, "cdl1" : 0, "cdl2" : 0, "cdl3" : 0, "coverage" : 1e-11, 
 "nu" : 0.1, "temp" : 293, "area" : 1, "reverse" : false},
 
-{"Ru": 0.0, "k_0Mean": 0.1, "reverse": false, "ERev": 0.5, 
-"name": "morris-E0-disp-MC", "temp": 293, "EStart": -0.2, "Cdl": 0.0, 
-"E_0Mean": 0, "dE": 0.0, "area": 1.0, "E_0SD": 0.05, "numRuns": 1000, 
-"Cdl1": 0.0, "Cdl3": 0.0, "Cdl2": 0.0, "coverage": 1e-11, "freq": 0.0, 
-"type": "disp-dimensional-MC", "nu": 0.1, "k_0SD": 0}
+{"resistance": 0.0, "eq_rate_mean": 0.1, "reverse": false, "pot_rev": 0.5, 
+"name": "morris-E0-disp-MC", "temp": 293, "pot_start": -0.2, "cdl": 0.0, 
+"eq_pot_mean": 0, "ac_amplitude": 0.0, "area": 1.0, "eq_pot_stdev": 0.05, "num_runs": 9000, 
+"cdl1": 0.0, "cdl3": 0.0, "cdl2": 0.0, "coverage": 1e-11, "freq": 0.0, 
+"type": "disp-dimensional-MC", "nu": 0.1, "eq_rate_stdev": 0},
+
+{"name" : "Dispersion points plot", "type" : "disp-dimensional-bins", 
+"pot_start" : -0.5, "pot_rev" : 0.5, "eq_pot" : 0, "ac_amplitude" : 150e-3, "freq" : 9.0, 
+"eq_rate" : 4e3, "resistance" : 100.0, "cdl" : 4e-4, "cdl1" : 8.5e-4, "cdl2" : 2.5e-4,
+"cdl3" : 1e-6, "coverage" : 1.3e-11, "area" : 0.03, "nu" : 25e-3, 
+"temp" : 298.15, "reverse" : true}
 ]

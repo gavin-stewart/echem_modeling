@@ -1,0 +1,47 @@
+A short description of the scripts contained in this directory and their usage.
+Note that all scripts in this directory depend on the top level directory of
+the project being available on the pythonpath.
+
+Last updated August 12th, 2016
+
+convergenceForDispSampling.py - Generates a convergence plot for the harmonics
+                                of current.  The plot will be displayed when
+                                the script is complete, and the user may save
+                                it at this point.  This may be time consuming
+                                to run.
+conv_sparse_product_comp.py - Generates convergence plots for product and 
+                              sparse grid approaches to approximating 
+                              dispersion.  The plot will be displayed and also
+                              saved to files/convPlots/sparseVsProduct.pdf.  
+                              This may be time consuming to run.
+display_harmonics_morris.py - Displays the harmonics given in Figure 6 of 
+                              Morris et al 2015.
+findMinReqdPoints.py - Code for determining the number of points required in 
+                       the time domain to accurately resolve the AC-driven
+                       current oscillations.
+generateDisprConvergencePlots.py - Generates plots of the number of points 
+                                   required resolve dispersion with  an error
+                                   of < 1% for various levels of dispersion.  
+                                   The data for this program are saved 
+                                   periodically to files/dispersionPlotsData.dat
+                                   so if the run is interrupted, it can be 
+                                   resumed wtih minimal loss of data.  If the 
+                                   data is suspect, the script can be run with
+                                   the -r or --recheck command line flags to 
+                                   verify previously generated data.
+generate_high_res_data.py - Generates non-dispersed data with a high number of 
+                            time points.  The data is saved to 
+                            files/highresSimData.npz.
+plot_dispersion_as_sum.py - Generates a plot of current due to thermodynamic
+                            dispersion, represented as a weighted sum of the
+                            current at five difference E_0 values.
+plotDispHarmonics.py - Plots and saves figures displaying the envelopes of 
+                       current with different levels of dispersion.  The plots 
+                       are saved to a directory specified by the user at 
+                       run-time.
+plot_lognorm_pdfs.py - Plots probability density functions for log-normal
+                       distributions.  The plots are displayed and can be
+                       saved by the user.
+save_json.py - Allows the user to create a new entry in a JSON file for
+               storing experimental parameters.  At the moment, the script is
+               not especially convenient.
